@@ -159,25 +159,12 @@ class Select extends Component
                 'logo' => asset('svgs/resources/public-repo.svg'),
             ],
             [
-                'id' => 'private-deploy-key',
-                'name' => 'Private Git Repository (with Deploy Key)',
-                'description' => 'Deploy a private repository over SSH with a repository-scoped deploy key. Set the URL and branch manually, no automatic deploys.',
-                'documentation' => 'https://coolify.io/docs/applications/ci-cd/github/deploy-key',
-                'logo' => asset('svgs/resources/deploy-key.svg'),
-            ],
-            [
                 'id' => 'private-gh-app',
                 'name' => 'Git Repository (with GitHub App)',
                 'description' => 'Deploy public or private GitHub repositories through a GitHub App, with automatic webhooks and pull request previews.',
                 'documentation' => 'https://coolify.io/docs/applications/ci-cd/github/setup-app',
                 'logo' => asset('svgs/resources/github-app.svg'),
                 'logoDark' => asset('svgs/resources/github-app-dark.svg'),
-            ],
-            [
-                'id' => 'private-gitlab-app',
-                'name' => 'Git Repository (with GitLab App)',
-                'description' => 'Deploy public or private GitLab projects through a GitLab App, with automatic webhooks and merge request previews.',
-                'logo' => asset('svgs/resources/gitlab-app.svg'),
             ],
         ];
         $dockerBasedApplications = [
@@ -187,20 +174,6 @@ class Select extends Component
                 'description' => 'Deploy an application using a Dockerfile, without a Git repository.',
                 'documentation' => 'https://coolify.io/docs/applications/build-packs/dockerfile',
                 'logo' => asset('svgs/resources/dockerfile.svg'),
-            ],
-            [
-                'id' => 'docker-compose-empty',
-                'name' => 'Docker Compose',
-                'description' => 'Deploy a multi-container application using a Docker Compose file, without a Git repository.',
-                'documentation' => 'https://coolify.io/docs/applications/build-packs/docker-compose',
-                'logo' => asset('svgs/resources/docker-compose.svg'),
-            ],
-            [
-                'id' => 'docker-image',
-                'name' => 'Docker Image',
-                'description' => 'Deploy an application using a prebuilt image from any Docker registry, without a Git repository.',
-                'documentation' => 'https://coolify.io/docs/applications',
-                'logo' => asset('svgs/resources/docker-image.svg'),
             ],
         ];
         $databases = [
@@ -218,44 +191,11 @@ class Select extends Component
 
             ],
             [
-                'id' => 'mariadb',
-                'name' => 'MariaDB',
-                'description' => 'A relational database and drop-in replacement for MySQL.',
-                'logo' => asset('svgs/resources/mariadb.svg'),
-            ],
-            [
                 'id' => 'redis',
                 'name' => 'Redis',
                 'description' => 'An in-memory key-value store used as a database, cache, and message broker.',
                 'logo' => asset('svgs/resources/redis.svg'),
             ],
-            [
-                'id' => 'keydb',
-                'name' => 'KeyDB',
-                'description' => 'A multithreaded, Redis-compatible in-memory store.',
-                'logo' => asset('svgs/resources/keydb.svg'),
-                'logoDark' => asset('svgs/resources/keydb-dark.svg'),
-            ],
-            [
-                'id' => 'dragonfly',
-                'name' => 'Dragonfly',
-                'description' => 'An in-memory datastore compatible with Redis and Memcached.',
-                'logo' => asset('svgs/resources/dragonfly.svg'),
-                'logoDark' => asset('svgs/resources/dragonfly-dark.svg'),
-            ],
-            [
-                'id' => 'mongodb',
-                'name' => 'MongoDB',
-                'description' => 'A document-oriented NoSQL database that stores JSON-like documents.',
-                'logo' => asset('svgs/resources/mongodb.svg'),
-            ],
-            [
-                'id' => 'clickhouse',
-                'name' => 'ClickHouse',
-                'description' => 'A column-oriented database for real-time analytics over large datasets.',
-                'logo' => asset('svgs/resources/clickhouse.svg'),
-            ],
-
         ];
 
         return [
