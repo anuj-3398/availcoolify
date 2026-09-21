@@ -1,5 +1,5 @@
 <div class="application-settings-form" x-data x-init="$wire.loadServers">
-    <div x-data="searchResources()">
+    <div x-data="searchResources()" x-init="loadResources">
         @if ($current_step === 'type')
             <x-application.settings-section title="Choose a resource" flush>
                 <x-slot:actions>
@@ -41,53 +41,6 @@
                                 </template>
                         </x-table.dropdown>
 
-                        <div class="relative w-48" @click.outside="closeCategoryFilter()">
-                            <button type="button" class="listbox-trigger"
-                                :disabled="loading || categories.length === 0"
-                                @click="categoryOpen = !categoryOpen; $nextTick(() => categoryOpen && $refs.categorySearchInput.focus())"
-                                aria-haspopup="listbox" aria-controls="resource-category-options"
-                                :aria-expanded="categoryOpen"
-                                :title="selectedCategory === '' ? 'All categories' : selectedCategory">
-                                <span class="listbox-trigger-label capitalize"
-                                    x-text="selectedCategory === '' ? 'All categories' : selectedCategory"></span>
-                                <svg class="size-3.5 shrink-0 opacity-60" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="m8 9 4-4 4 4m0 6-4 4-4-4" />
-                                </svg>
-                            </button>
-                            <div id="resource-category-options" x-show="categoryOpen" x-cloak
-                                x-transition.opacity.duration.120ms role="listbox" aria-label="Service category"
-                                @keydown.escape.stop="closeCategoryFilter(true)"
-                                class="listbox-panel left-auto! right-0! z-[90]! min-w-56!">
-                                <div class="border-b border-neutral-200 p-2 dark:border-white/[0.08]">
-                                    <input type="search" x-ref="categorySearchInput" x-model="categorySearch"
-                                        placeholder="Search categories"
-                                        class="h-8! w-full rounded-md! border-neutral-200! bg-neutral-50! px-2.5! py-0! text-[12px]! shadow-none! focus:ring-0! dark:border-white/[0.08]! dark:bg-white/[0.04]! dark:text-fg!"
-                                        @click.stop>
-                                </div>
-                                <div class="max-h-60 overflow-auto p-1">
-                                    <button type="button" class="listbox-option" role="option"
-                                        :aria-selected="selectedCategory === ''"
-                                        @click="selectedCategory = ''; categorySearch = ''; categoryOpen = false">
-                                        <span>All categories</span>
-                                        <x-reicon name="check-circle" class="size-3.5 text-accent"
-                                            x-show="selectedCategory === ''" />
-                                    </button>
-                                    <template
-                                        x-for="category in categories.filter(category => categorySearch === '' || category.toLowerCase().includes(categorySearch.toLowerCase()))"
-                                        :key="category">
-                                        <button type="button" class="listbox-option capitalize" role="option"
-                                            :aria-selected="selectedCategory === category"
-                                            @click="selectedCategory = category; categorySearch = ''; categoryOpen = false">
-                                            <span class="truncate" x-text="category"></span>
-                                            <x-reicon name="check-circle" class="size-3.5 text-accent"
-                                                x-show="selectedCategory === category" />
-                                        </button>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </x-application.settings-section>
@@ -256,78 +209,6 @@
                     </div>
                 </section>
 
-                <section
-                    x-show="(resourceType === 'all' || resourceType === 'services') && filteredServices.length > 0"
-                    class="application-settings-section">
-                    <div class="application-settings-section-header" x-init="loadResources">
-                        <div class="flex items-center gap-2">
-                            <x-reicon name="layers" class="size-4 text-neutral-400 dark:text-fg-faint" />
-                            <h2>Services</h2>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-2">
-                            <div x-show="serviceTemplatesLastUpdated"
-                                class="text-[11px] text-neutral-500 dark:text-fg-faint">
-                                Updated <span x-text="serviceTemplatesLastUpdated"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="application-settings-section-body">
-                        <x-callout type="info" title="Trademarks policy" class="mb-4">
-                            The respective trademarks mentioned here are owned by the respective companies, and use of them
-                            does not imply any affiliation or endorsement.
-                        </x-callout>
-
-                        <div class="grid grid-cols-1 justify-start gap-3 text-left md:grid-cols-2 xl:grid-cols-3">
-                            <template x-for="service in filteredServices" :key="service.name">
-                                <article role="button" tabindex="0" :aria-label="'Deploy ' + service.name"
-                                    @click="setType('one-click-service-' + service.id)"
-                                    @keydown.enter.self.prevent="setType('one-click-service-' + service.id)"
-                                    @keydown.space.self.prevent="setType('one-click-service-' + service.id)"
-                                    class="group flex min-h-48 cursor-pointer flex-col rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent dark:border-white/[0.08] dark:bg-white/[0.05] dark:hover:border-white/[0.14]">
-                                    <div class="flex min-w-0 items-start gap-3">
-                                        <div
-                                            class="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50 dark:border-white/[0.08] dark:bg-white/[0.04]">
-                                            <img class="h-full w-full object-contain p-2" :src="service.logo"
-                                                x-on:error="if (!$el.dataset.cdnTried) { $el.dataset.cdnTried = 'true'; $el.src = service.logo_cdn_url; } else if (!$el.dataset.defaultTried) { $el.dataset.defaultTried = 'true'; $el.src = service.logo_default_url; }" />
-                                        </div>
-                                        <div class="min-w-0 flex-1">
-                                            <h3 class="truncate text-[13px] font-semibold text-black dark:text-fg"
-                                                x-text="service.name"></h3>
-                                            <p class="mt-0.5 truncate text-[11px] text-neutral-500 dark:text-fg-faint">
-                                                <span x-show="service.templateLastUpdated">Updated </span>
-                                                <span x-text="service.templateLastUpdated || 'Template ready'"></span>
-                                            </p>
-                                        </div>
-                                        <span x-show="service.amd_only || service.arm_only"
-                                            class="shrink-0 rounded-md border border-amber-300/50 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:border-warning/20 dark:bg-warning/10 dark:text-warning"
-                                            x-text="service.arm_only ? 'ARM only' : 'AMD only'"></span>
-                                    </div>
-
-                                    <p class="mt-3 line-clamp-2 text-[12px] leading-5 text-neutral-600 dark:text-fg-dim"
-                                        x-text="service.slogan || service.description || 'Deploy this service with a ready-to-use Coolify template.'">
-                                    </p>
-
-                                    <div
-                                        class="mt-auto flex items-center gap-1.5 border-t border-neutral-200 pt-3 dark:border-white/[0.07]">
-                                        <a :href="getDocLink(service) || coolifyDocsUrl(service)" target="_blank"
-                                            rel="noopener noreferrer" @mouseenter="resolveDocLink(service)" @click.stop
-                                            class="button" :class="{ 'opacity-60': docCheckInProgress[service.name] }">
-                                            Docs
-                                        </a>
-                                        <a x-show="serviceWebsiteUrl(service)" :href="serviceWebsiteUrl(service)"
-                                            target="_blank" rel="noopener noreferrer" class="button" @click.stop>
-                                            Website
-                                        </a>
-                                        <span class="button button-highlighted ml-auto">
-                                            Deploy
-                                            <x-reicon name="arrow-right" class="size-3.5" />
-                                        </span>
-                                    </div>
-                                </article>
-                            </template>
-                        </div>
-                    </div>
-                </section>
                 <div x-show="visibleResourceCount === 0 && loading === false">
                     <x-empty title="No resources found" description="Try a different search or resource type."
                         icon-name="layers" size="sm" />
@@ -353,10 +234,6 @@
                             {
                                 value: 'databases',
                                 label: 'Databases'
-                            },
-                            {
-                                value: 'services',
-                                label: 'Services'
                             }
                         ],
                         filterOpen: false,
@@ -605,11 +482,7 @@
                                 return this.filteredDatabases.length;
                             }
 
-                            if (this.resourceType === 'services') {
-                                return this.filteredServices.length;
-                            }
-
-                            return applicationCount + this.filteredDatabases.length + this.filteredServices.length;
+                            return applicationCount + this.filteredDatabases.length;
                         }
                     }
                 }
