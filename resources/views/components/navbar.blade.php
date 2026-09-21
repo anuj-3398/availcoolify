@@ -1,4 +1,4 @@
-<nav class="flex flex-col flex-1 bg-white border-r border-neutral-200 dark:border-white/[0.06] dark:bg-panel pt-2"
+<nav class="flex flex-col flex-1 min-h-0 bg-white border-r border-neutral-200 dark:border-white/[0.06] dark:bg-panel pt-2"
     :class="collapsed ? 'px-2 lg:px-3 sidebar-collapsed' : 'px-2 lg:px-3'"
     @mouseover="
         if (!collapsed) return;
@@ -66,7 +66,7 @@
         </div>
     @endif
 
-    <ul role="list" class="-mx-1 flex min-h-0 flex-1 flex-col gap-y-0.5 overflow-y-auto px-1 pb-2 scrollbar">
+    <ul role="list" class="-mx-1 flex min-h-0 flex-1 flex-col gap-y-0.5 overflow-y-auto px-1 pb-2">
         @if (isSubscribed() || !isCloud())
             {{-- Workspace --}}
             <li class="nav-section" :class="collapsed && 'lg:hidden'">Workspace</li>
