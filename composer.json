@@ -102,7 +102,14 @@
         "sort-packages": true
     },
     "scripts": {
+        "patch-vendor": [
+            "@php scripts/apply-vendor-patches.php"
+        ],
+        "post-install-cmd": [
+            "@patch-vendor"
+        ],
         "post-update-cmd": [
+            "@patch-vendor",
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
             "Illuminate\\Foundation\\ComposerScripts::postUpdate"
         ],
