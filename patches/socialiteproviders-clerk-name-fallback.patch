@@ -1,0 +1,11 @@
+--- a/Provider.php
++++ b/Provider.php
+@@ -70,7 +70,7 @@
+         return (new User)->setRaw($user)->map([
+             'id' => $user['user_id'],
+             'nickname' => $user['username'] ?? ($user['given_name'] ?? null),
+-            'name' => $user['name'],
++            'name' => $user['name'] ?? $user['email'] ?? null,
+             'email' => $user['email'],
+             'avatar' => $user['picture'] ?? null,
+         ]);
