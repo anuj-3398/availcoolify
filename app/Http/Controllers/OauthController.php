@@ -14,6 +14,9 @@ class OauthController extends Controller
     {
         $oauthSetting = $this->enabledProvider($provider);
         $socialiteProvider = get_socialite_provider($oauthSetting->provider);
+        if ($oauthSetting->provider === 'clerk') {
+            $socialiteProvider = $socialiteProvider->with(['prompt' => 'login']);
+        }
 
         return $socialiteProvider->redirect();
     }
