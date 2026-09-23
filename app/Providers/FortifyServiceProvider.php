@@ -71,6 +71,7 @@ class FortifyServiceProvider extends ServiceProvider
         });
 
         Fortify::authenticateUsing(function (Request $request) {
+    return null; // Password login disabled -- Clerk is the sole login method
             $email = strtolower($request->email);
             $user = User::where('email', $email)->with('teams')->first();
             if (
