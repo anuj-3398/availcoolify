@@ -3,19 +3,14 @@
 use Illuminate\Support\Facades\Blade;
 
 /**
- * Header version badge should open the matching GitHub release page.
+ * AvailCoolify hides the running version (and its GitHub release link) next to the brand name.
  */
-test('desktop header version links to the coolify github release for the installed version', function () {
+test('desktop header does not show the version badge or its release link', function () {
     $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
-    $version = file_get_contents(resource_path('views/components/version.blade.php'));
 
     expect($layout)
-        ->toContain('<x-version')
-        ->not->toContain("class=\"text-[10.5px] font-medium text-neutral-400 dark:text-fg-faint\">v{{ config('constants.coolify.version') }}</span>");
-
-    expect($version)
-        ->toContain("https://github.com/coollabsio/coolify/releases/tag/v{{ config('constants.coolify.version') }}")
-        ->toContain('target="_blank"');
+        ->not->toContain('<x-version')
+        ->not->toContain('releases/tag');
 });
 
 test('development versions are not linked to nonexistent github releases', function () {
@@ -29,10 +24,10 @@ test('development versions are not linked to nonexistent github releases', funct
         ->not->toContain('target="_blank"');
 });
 
-test('mobile sidebar shows the installed coolify version when opened', function () {
+test('mobile sidebar brand does not show the version badge', function () {
     $layout = file_get_contents(resource_path('views/layouts/app.blade.php'));
 
     expect($layout)
         ->toContain('data-mobile-sidebar-brand')
-        ->toContain('<x-version class="!text-[10.5px]');
+        ->not->toContain('<x-version');
 });
