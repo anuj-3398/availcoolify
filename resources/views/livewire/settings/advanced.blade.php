@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Advanced Settings | Coolify
+        Advanced Settings
     </x-slot>
 
     <x-settings.layout>
