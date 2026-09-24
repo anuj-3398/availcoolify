@@ -27,13 +27,6 @@ it('opens the email change form without a Livewire request', function () {
         ->not->toContain('wire:click="showEmailChangeForm"');
 });
 
-it('shows the two-factor authentication state as a header badge', function () {
-    $profileView = file_get_contents(resource_path('views/livewire/profile/index.blade.php'));
-
-    expect($profileView)
-        ->toContain('<x-status-badge status="Enabled" type="success" />');
-});
-
 it('offers full and centered page width preferences on the profile appearance view', function () {
     $appearanceView = file_get_contents(resource_path('views/livewire/profile/appearance.blade.php'));
     $appLayout = file_get_contents(resource_path('views/layouts/app.blade.php'));

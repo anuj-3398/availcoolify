@@ -291,8 +291,9 @@ it('does not link another provider identity to an account by shared email', func
     expect(OauthIdentity::count())->toBe(1);
 });
 
-it('sends an OAuth user with confirmed two factor authentication to the Fortify challenge', function () {
-    config()->set('fortify.features', [Features::twoFactorAuthentication(['confirm' => true])]);
+// Avail: two-factor is handled by Clerk, so Coolify's own 2FA feature (and its challenge
+// route) is disabled. Leftover Coolify 2FA data must not block or break the OAuth login.
+it('signs in an OAuth user with leftover Coolify two factor data without a Fortify challenge', function () {
     $user = User::factory()->create([
         'email' => 'two-factor@example.com',
         'two_factor_secret' => encrypt('secret'),
@@ -318,10 +319,9 @@ it('sends an OAuth user with confirmed two factor authentication to the Fortify 
     Socialite::shouldReceive('driver')->once()->with('google')->andReturn($provider);
 
     $this->get(route('auth.callback', 'google'))
-        ->assertRedirect(route('two-factor.login'))
-        ->assertSessionHas('login.id', $user->id);
+        ->assertRedirect('/');
 
-    $this->assertGuest();
+    $this->assertAuthenticatedAs($user);
 });
 
 it('completes OAuth login without a challenge when two factor authentication is not enabled for the user', function () {

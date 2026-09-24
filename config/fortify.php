@@ -138,11 +138,7 @@ return [
         // Features::emailVerification(),
         Features::updateProfileInformation(),
         Features::updatePasswords(),
-        Features::twoFactorAuthentication([
-            'confirm' => true,
-            'confirmPassword' => true,
-            // 'window' => 0,
-        ]),
+        // Avail: two-factor is handled by Clerk (the only login method), not Coolify.
     ],
 
 ];

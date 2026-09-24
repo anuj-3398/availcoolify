@@ -83,17 +83,6 @@ it('renders 419 error page with login link instead of previous url', function ()
     expect($view)->not->toContain('url()->previous()');
 });
 
-it('redirects an authenticated stale two-factor submission home instead of showing 419', function () {
-    $request = Request::create('/two-factor-challenge', 'POST');
-    $request->setRouteResolver(fn () => Route::getRoutes()->match($request));
-    $request->setUserResolver(fn () => $this->user);
-
-    $response = app(ExceptionHandler::class)->render($request, new TokenMismatchException('CSRF token mismatch.'));
-
-    expect($response->getStatusCode())->toBe(302)
-        ->and($response->headers->get('Location'))->toBe(url('/'));
-});
-
 it('still returns 419 for a stale two-factor submission without an authenticated session', function () {
     $request = Request::create('/two-factor-challenge', 'POST');
     $request->setRouteResolver(fn () => Route::getRoutes()->match($request));

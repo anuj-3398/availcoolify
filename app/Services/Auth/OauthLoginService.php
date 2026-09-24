@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Events\TwoFactorAuthenticationChallenged;
+use Laravel\Fortify\Features;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class OauthLoginService
@@ -58,7 +59,9 @@ class OauthLoginService
 
     public function requiresTwoFactorChallenge(User $user): bool
     {
-        return $user->hasEnabledTwoFactorAuthentication();
+        // The challenge route only exists while Fortify's 2FA feature is enabled.
+        return Features::enabled(Features::twoFactorAuthentication())
+            && $user->hasEnabledTwoFactorAuthentication();
     }
 
     private function resolveOauthUser(object $oauthUser, OauthSetting $oauthSetting, string $email): User
