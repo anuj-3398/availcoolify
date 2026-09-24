@@ -163,6 +163,12 @@ COPY --chown=www-data:www-data changelogs/ ./changelogs/
 
 RUN composer dump-autoload
 
+# Avail: composer install above runs with --no-scripts, so post-install-cmd never
+# applies our vendor patches. Apply them explicitly and fail the build if one is missing.
+COPY --chown=www-data:www-data patches ./patches
+COPY --chown=www-data:www-data scripts/apply-vendor-patches.php ./scripts/apply-vendor-patches.php
+RUN php scripts/apply-vendor-patches.php &&     for p in patches/*.patch; do     git apply --reverse --check --directory=vendor/socialiteproviders/clerk "$p" || { echo "Vendor patch not applied: $p"; exit 1; };     done
+
 # Install terminal WebSocket server dependencies
 COPY docker/coolify-terminal/package*.json /terminal/
 RUN npm ci --prefix /terminal && \
