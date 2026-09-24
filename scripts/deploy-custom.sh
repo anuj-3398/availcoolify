@@ -22,6 +22,9 @@ else
         exit 1
     fi
     TAG="availcoolify:custom-$(git rev-parse --short HEAD)"
+    # Git-ignored Laravel caches (e.g. left by local test runs) would otherwise be copied
+    # into the image with the rest of bootstrap/; the container rebuilds them on start.
+    find bootstrap/cache -maxdepth 1 -name "*.php" -delete
     echo "Building $TAG from $(git rev-parse --abbrev-ref HEAD)"
     docker build -f docker/production/Dockerfile -t "$TAG" .
 fi
