@@ -31,7 +31,7 @@ class OauthController extends Controller
                 return redirect()->route('two-factor.login');
             }
 
-            return redirect('/');
+            return redirect()->intended('/');
         } catch (\Exception $e) {
             $this->logCallbackFailure($provider, $e);
 

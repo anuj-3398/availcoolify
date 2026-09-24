@@ -34,6 +34,8 @@ class RouteServiceProvider extends ServiceProvider
             Route::prefix('webhooks')
                 ->group(base_path('routes/webhooks.php'));
 
+            Route::group([], base_path('routes/preview-guard.php'));
+
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
         });
