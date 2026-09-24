@@ -95,28 +95,13 @@
                 </div>
             </div>
 
-            @can('manageMembers', currentTeam())
-                <div
-                    class="border-b border-neutral-200 px-4 py-2.5 text-[12px] dark:border-white/[0.08]">
-                    @if ($membersWithoutTwoFactorCount > 0)
-                        <span class="text-warning-700 dark:text-warning">{{ $membersWithoutTwoFactorCount }} of {{ $members->count() }} {{ Str::plural('member', $members->count()) }} {{ $membersWithoutTwoFactorCount === 1 ? 'does' : 'do' }} not have two-factor authentication enabled.</span>
-                    @else
-                        <span class="text-neutral-500 dark:text-fg-dim">All members have two-factor authentication enabled.</span>
-                    @endif
-                </div>
-            @endcan
-
             <div x-cloak x-show="filteredMembers.length > 0" class="data-table flex flex-col">
                 <div @class([
                     'data-table-header team-members-table-grid',
-                    'team-members-table-grid-2fa' => auth()->user()?->can('manageMembers', currentTeam()),
                 ])>
                     <span>Name</span>
                     <span>Email</span>
                     <span>Role</span>
-                    @can('manageMembers', currentTeam())
-                        <span>2FA</span>
-                    @endcan
                     <span class="text-right">Actions</span>
                 </div>
                 @foreach ($members as $member)

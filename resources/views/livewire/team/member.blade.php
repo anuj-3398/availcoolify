@@ -3,7 +3,6 @@
     x-bind:style="{ order: memberOrder({{ $member->id }}) }"
     @class([
         'data-table-row team-members-table-grid border-b border-neutral-200 last:border-b-0 dark:border-white/[0.07]',
-        'team-members-table-grid-2fa' => auth()->user()?->can('manageMembers', currentTeam()),
     ])>
     <div>
         <div class="flex items-center gap-2">
@@ -27,11 +26,6 @@
             {{ data_get($member, 'pivot.role') }}
         </span>
     </div>
-    @can('manageMembers', currentTeam())
-        <div class="flex items-center">
-            <x-two-factor-badge :enabled="filled($member->two_factor_confirmed_at)" />
-        </div>
-    @endcan
     <div class="flex justify-end">
         @can('manageMembers', currentTeam())
             @if ($member->id !== Auth::id())
