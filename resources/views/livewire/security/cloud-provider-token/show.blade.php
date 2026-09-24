@@ -22,7 +22,7 @@
         </form>
     @else
     <x-slot:title>
-        {{ $cloudProviderToken->name }} | Cloud Tokens | Coolify
+        {{ $cloudProviderToken->name }} | Cloud Tokens
     </x-slot>
 
     <x-security.settings-layout>

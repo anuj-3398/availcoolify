@@ -70,7 +70,7 @@
                             class="flex items-center hover:opacity-80 transition-opacity">
                             <img x-show="collapsed" x-cloak src="/coolify-logo.svg" alt="Coolify"
                                 class="size-5" />
-                            <span x-show="!collapsed" class="text-[15px] font-semibold tracking-tight text-black dark:text-white">Coolify</span>
+                            <span x-show="!collapsed" class="text-[15px] font-semibold tracking-tight text-black dark:text-white">AvailCoolify</span>
                         </a>
                     </div>
                     @if (isInstanceAdmin() && !isCloud())
@@ -120,7 +120,7 @@
                             <div class="flex min-w-0 items-baseline gap-1.5">
                                 <a href="/" {{ wireNavigate() }} title="Coolify"
                                     class="text-[15px] font-semibold tracking-tight text-black transition-opacity hover:opacity-80 dark:text-white">
-                                    Coolify
+                                    AvailCoolify
                                 </a>
                             </div>
                             <button type="button" x-on:click="open = false" aria-label="Close menu"

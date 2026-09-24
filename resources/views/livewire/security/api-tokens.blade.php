@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        API Tokens | Coolify
+        API Tokens
     </x-slot>
 
     <x-security.settings-layout>
