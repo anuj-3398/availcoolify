@@ -102,33 +102,12 @@
 
         <div class="my-1 h-px bg-neutral-200 dark:bg-white/[0.07]"></div>
 
-        <livewire:settings-dropdown trigger="account-menu" />
         <a href="https://coolify.io/docs" target="_blank" rel="noopener noreferrer" class="listbox-option">
             <span class="flex items-center gap-2">
                 <x-reicon name="documentation" class="size-4 opacity-80" />
                 Documentation
             </span>
         </a>
-        <x-modal-input title="How can we help?">
-            <x-slot:content>
-                <div class="listbox-option cursor-pointer" @click="closePanel()">
-                    <span class="flex items-center gap-2">
-                        <x-reicon name="feedback" class="size-4 opacity-80" />
-                        Feedback
-                    </span>
-                </div>
-            </x-slot:content>
-            <livewire:help />
-        </x-modal-input>
-        @if (isSubscribed() || !isCloud())
-            <a href="https://coolify.io/sponsorships" target="_blank" rel="noopener noreferrer"
-                class="listbox-option">
-                <span class="flex items-center gap-2">
-                    <x-reicon name="sponsor" class="size-4 text-pink-500" />
-                    Sponsor us
-                </span>
-            </a>
-        @endif
 
         <div class="my-1 h-px bg-neutral-200 dark:bg-white/[0.07]"></div>
 

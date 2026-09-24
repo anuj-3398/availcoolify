@@ -201,25 +201,6 @@
          </template>
          @endif
 
-        <form wire:submit="resetPassword">
-            <section class="application-settings-section">
-                <div class="application-settings-section-header">
-                    <div>
-                        <h2>Password</h2>
-                        <p>Changing your password signs out every active session.</p>
-                    </div>
-                    <x-forms.button type="submit">Change password</x-forms.button>
-                </div>
-                <div class="application-settings-section-body grid gap-4 sm:grid-cols-2">
-                    <x-forms.input class="sm:col-span-2" id="current_password" label="Current password"
-                        required type="password" />
-                    <x-forms.input id="new_password" label="New password" required type="password" />
-                    <x-forms.input id="new_password_confirmation" label="Confirm new password" required
-                        type="password" />
-                </div>
-            </section>
-        </form>
-
         <section class="application-settings-section">
             <div class="application-settings-section-header">
                 <div>
