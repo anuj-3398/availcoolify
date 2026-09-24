@@ -1140,6 +1140,8 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
         }
     }
 
+    $labels = applyPreviewGuardLabels($labels, $application, $preview);
+
     return $labels->all();
 }
 
