@@ -32,6 +32,15 @@ mkdir -p "$SOURCE/backups-compose/$STAMP"
 cp "$SOURCE"/docker-compose*.yml "$SOURCE/backups-compose/$STAMP/"
 cp docker-compose.yml docker-compose.prod.yml "$SOURCE/"
 
+# Report the version of the code actually running (the .env value otherwise stays at the last
+# official release). "<base>-avail.<sha>" sorts above every 4.3.x release but below the real
+# <base>.0 release in version_compare, so the dashboard offers no bogus upgrade (whose script
+# would overwrite these compose files) yet still flags the next upstream release.
+BASE_VERSION="$(sed -n "s/.*'version' => env('COOLIFY_VERSION') ?: '\([^']*\)'.*/\1/p" config/constants.php)"
+VERSION="${BASE_VERSION:-4.4}-avail.${TAG##*custom-}"
+cp "$SOURCE/.env" "$SOURCE/backups-compose/$STAMP/.env"
+sed -i "s/^COOLIFY_VERSION=.*/COOLIFY_VERSION=${VERSION}/" "$SOURCE/.env"
+
 cat >"$SOURCE/docker-compose.custom.yml" <<EOF
 # Managed by availcoolify scripts/deploy-custom.sh — runs the Avail custom build.
 services:
@@ -45,5 +54,5 @@ docker compose --env-file "$SOURCE/.env" \
     -f "$SOURCE/docker-compose.custom.yml" \
     up -d --remove-orphans --wait --wait-timeout 300
 
-echo "Coolify is running $TAG"
+echo "Coolify is running $TAG (version $VERSION)"
 echo "Previous compose files: $SOURCE/backups-compose/$STAMP"
