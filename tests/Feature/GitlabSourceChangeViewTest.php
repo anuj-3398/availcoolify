@@ -70,8 +70,8 @@ describe('GitLab source setup view', function () {
         $view = file_get_contents(resource_path('views/livewire/source/gitlab/change.blade.php'));
 
         expect($view)
-            ->toContain("{{ \$name ?: 'GitLab App' }} | Sources | Coolify")
-            ->not->toContain("{{ \$gitlab_app->name ?: 'GitLab App' }} | Sources | Coolify");
+            ->toContain("{{ \$name ?: 'GitLab App' }} | Sources")
+            ->not->toContain("{{ \$gitlab_app->name ?: 'GitLab App' }} | Sources");
     });
 
     test('saves and reloads the application secret after refresh', function () {

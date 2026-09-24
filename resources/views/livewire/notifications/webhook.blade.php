@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Webhook Notifications | Coolify
+        Webhook Notifications
     </x-slot>
 
     <x-notification.settings-layout>

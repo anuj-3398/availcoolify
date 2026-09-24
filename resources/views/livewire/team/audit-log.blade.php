@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Team Audit Log | Coolify
+        Team Audit Log
     </x-slot>
 
     <x-team.settings-layout>

@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Keys & Tokens | Coolify
+        Keys & Tokens
     </x-slot>
 
     <x-security.settings-layout>

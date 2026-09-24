@@ -152,7 +152,7 @@
             }
         }
     @endphp
-    <title>{{ $name }}{{ $title ?? 'Coolify' }}</title>
+    <title>{{ $name }}{{ $title ?? 'AvailCoolify' }}</title>
     @env('local')
         <link rel="icon" href="{{ asset('coolify-logo-dev-transparent.png') }}" type="image/png" />
     @else

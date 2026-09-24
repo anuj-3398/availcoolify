@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Server Variables | Coolify
+        Server Variables
     </x-slot>
 
     <x-shared-variables.editor :resource="$server"

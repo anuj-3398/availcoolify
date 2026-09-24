@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Import server transfer | Coolify
+        Import server transfer
     </x-slot>
     <div class="flex flex-col gap-6">
         <div class="flex flex-wrap items-center gap-2">

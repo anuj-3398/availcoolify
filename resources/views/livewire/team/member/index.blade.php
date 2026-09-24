@@ -53,7 +53,7 @@
     }
 }">
     <x-slot:title>
-        Team Members | Coolify
+        Team Members
     </x-slot>
 
     <x-team.settings-layout>

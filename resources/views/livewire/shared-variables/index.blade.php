@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Shared Variables | Coolify
+        Shared Variables
     </x-slot>
 
     <x-shared-variables.layout>

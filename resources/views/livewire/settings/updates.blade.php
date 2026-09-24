@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        Update Settings | Coolify
+        Update Settings
     </x-slot>
 
     <x-settings.layout>

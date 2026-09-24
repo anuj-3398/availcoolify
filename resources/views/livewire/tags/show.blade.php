@@ -1,6 +1,6 @@
 <div class="application-settings-form w-full">
     <x-slot:title>
-        Tags | Coolify
+        Tags
     </x-slot>
 
     <header @class([
