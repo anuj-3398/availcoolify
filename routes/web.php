@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\OauthController;
+use App\Http\Controllers\PreviewGuardController;
 use App\Http\Controllers\ProfileAvatarController;
 use App\Http\Controllers\ProjectIconController;
 use App\Http\Controllers\UploadController;
@@ -125,6 +126,7 @@ Route::post('/auth/link', [Controller::class, 'acceptLink'])->middleware('thrott
 
 Route::get('/auth/{provider}/redirect', [OauthController::class, 'redirect'])->name('auth.redirect');
 Route::get('/auth/{provider}/callback', [OauthController::class, 'callback'])->name('auth.callback');
+Route::get('/preview-guard/authorize', [PreviewGuardController::class, 'start'])->name('preview-guard.authorize');
 
 // Local/testing previews for HTTP error pages and the Laravel debug renderer (never in production).
 if (app()->environment(['local', 'testing'])) {

@@ -113,6 +113,10 @@ class General extends Component
 
     public ?string $httpBasicAuthPassword = null;
 
+    public string $authMode = 'none';
+
+    public string $previewGuardScope = 'previews';
+
     public ?string $watchPaths = null;
 
     public string $redirect;
@@ -189,6 +193,8 @@ class General extends Component
             'isHttpBasicAuthEnabled' => 'boolean|required',
             'httpBasicAuthUsername' => 'string|nullable',
             'httpBasicAuthPassword' => 'string|nullable',
+            'authMode' => 'string|in:none,clerk,basic',
+            'previewGuardScope' => 'string|in:previews,production,both',
             'watchPaths' => 'nullable',
             'redirect' => 'string|required',
         ];
@@ -374,7 +380,9 @@ class General extends Component
             $this->application->post_deployment_command = $this->postDeploymentCommand;
             $this->application->post_deployment_command_container = $this->postDeploymentCommandContainer;
             $this->application->custom_nginx_configuration = $this->customNginxConfiguration;
+            $this->isHttpBasicAuthEnabled = $this->authMode === 'basic';
             $this->application->is_http_basic_auth_enabled = $this->isHttpBasicAuthEnabled;
+            $this->application->preview_guard_scope = $this->authMode === 'clerk' ? $this->previewGuardScope : 'off';
             $this->application->http_basic_auth_username = $this->httpBasicAuthUsername;
             $this->application->http_basic_auth_password = $this->httpBasicAuthPassword;
             $this->application->watch_paths = $this->watchPaths;
@@ -429,6 +437,9 @@ class General extends Component
             $this->httpBasicAuthPassword = auth()->user()->can('update', $this->application)
                 ? $this->application->http_basic_auth_password
                 : null;
+            $guardScope = $this->application->preview_guard_scope ?? 'off';
+            $this->previewGuardScope = $guardScope === 'off' ? 'previews' : $guardScope;
+            $this->authMode = $guardScope !== 'off' ? 'clerk' : ($this->isHttpBasicAuthEnabled ? 'basic' : 'none');
             $this->watchPaths = $this->application->watch_paths;
             $this->redirect = $this->application->redirect;
 
@@ -460,6 +471,7 @@ class General extends Component
             $oldIsPreserveRepositoryEnabled = $this->application->settings->is_preserve_repository_enabled;
             $oldIsSpa = $this->application->settings->is_spa;
             $oldIsHttpBasicAuthEnabled = $this->application->is_http_basic_auth_enabled;
+            $oldPreviewGuardScope = $this->application->preview_guard_scope;
 
             $this->syncData(toModel: true);
 
@@ -469,11 +481,19 @@ class General extends Component
             if ($oldIsHttpBasicAuthEnabled !== $this->isHttpBasicAuthEnabled) {
                 $this->application->save();
             }
+            $previewGuardChanged = $oldPreviewGuardScope !== $this->application->preview_guard_scope;
+            if ($previewGuardChanged) {
+                $this->application->save();
+            }
 
             $this->dispatch('success', 'Settings saved.');
             $this->application->refresh();
 
             $this->syncData();
+
+            if ($previewGuardChanged) {
+                $this->resetDefaultLabels(false);
+            }
 
             // If port_exposes changed, reset default labels
             if ($oldPortsExposes !== $this->portsExposes || $oldIsContainerLabelEscapeEnabled !== $this->isContainerLabelEscapeEnabled) {

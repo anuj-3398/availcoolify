@@ -552,13 +552,25 @@
                         </x-slot:contents>
                     </x-empty>
                     @else
-                    <x-forms.listbox id="isHttpBasicAuthEnabled" label="Authentication" onChange="instantSave"
-                        helper="HTTP Basic Authentication adds the required authentication labels to the proxy. Coolify currently supports a single username and password."
+                    <x-forms.listbox id="authMode" label="Authentication" onChange="instantSave"
+                        helper="Clerk login sends visitors through the Coolify Clerk sign-in and only lets members of this application's team through. HTTP Basic Authentication uses a single shared username and password.<br><br>Changes apply to running containers after the next redeploy."
                         :options="[
-                            ['value' => false, 'label' => 'None'],
-                            ['value' => true, 'label' => 'HTTP Basic Authentication'],
+                            ['value' => 'none', 'label' => 'None'],
+                            ['value' => 'clerk', 'label' => 'Clerk login (team members only)'],
+                            ['value' => 'basic', 'label' => 'HTTP Basic Authentication'],
                         ]" x-bind:disabled="!canUpdate" />
-                    @if ($isHttpBasicAuthEnabled)
+                    @if ($authMode === 'clerk')
+                        <div class="mt-5 w-full border-t border-neutral-200 pt-5 dark:border-white/[0.07]">
+                            <x-forms.listbox id="previewGuardScope" label="Protect" onChange="instantSave"
+                                helper="Which URLs require a Clerk login. Visitors who sign in but are not on this application's team see a 403 page."
+                                :options="[
+                                    ['value' => 'previews', 'label' => 'Preview deployments only'],
+                                    ['value' => 'production', 'label' => 'Production domains only'],
+                                    ['value' => 'both', 'label' => 'Preview and production'],
+                                ]" x-bind:disabled="!canUpdate" />
+                        </div>
+                    @endif
+                    @if ($authMode === 'basic')
                         <div class="mt-5 grid w-full gap-4 border-t border-neutral-200 pt-5 sm:grid-cols-2 dark:border-white/[0.07]">
                             <x-forms.input id="httpBasicAuthUsername" label="Username" required
                                 x-bind:disabled="!canUpdate" />

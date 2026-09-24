@@ -21,6 +21,7 @@ class TrustHosts extends Middleware
     {
         // Skip host validation for these routes
         if ($request->is(
+            'preview-guard/verify',
             'api/*',
             'webhooks/*'
         )) {
