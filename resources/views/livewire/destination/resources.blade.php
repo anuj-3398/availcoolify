@@ -1,6 +1,6 @@
 <div>
     <x-slot:title>
-        {{ $destination->name }} Resources | Coolify
+        {{ $destination->name }} Resources
     </x-slot>
 
     <x-dashboard.navbar section="destination" :parameters="['destination_uuid' => $destination->uuid]"
