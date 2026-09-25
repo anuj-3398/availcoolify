@@ -155,7 +155,7 @@ class DockerImage extends Component
             'fqdn' => $fqdn,
         ]);
 
-        return redirectRoute($this, 'project.application.configuration', [
+        return availRedirectAfterApplicationCreated($application, [
             'application_uuid' => $application->uuid,
             'environment_uuid' => $environment->uuid,
             'project_uuid' => $project->uuid,
