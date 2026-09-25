@@ -552,6 +552,12 @@
                         </x-slot:contents>
                     </x-empty>
                     @else
+                    @if ($application->environment?->preview_guard_enabled)
+                        <p class="mb-4 text-[12px] leading-5 text-neutral-600 dark:text-fg-dim">
+                            Clerk login is on for the whole <strong>{{ $application->environment->name }}</strong> environment
+                            (Settings &rarr; Access protection), so this app's URLs and previews are protected whatever is chosen below.
+                        </p>
+                    @endif
                     <x-forms.listbox id="authMode" label="Authentication" onChange="instantSave"
                         helper="Clerk login sends visitors through the Coolify Clerk sign-in and only lets members of this application's team through. HTTP Basic Authentication uses a single shared username and password.<br><br>Changes apply to running containers after the next redeploy."
                         :options="[

@@ -81,6 +81,7 @@ use App\Livewire\Server\Show as ServerShow;
 use App\Livewire\Server\Swarm as ServerSwarm;
 use App\Livewire\Server\Transfer as ServerTransfer;
 use App\Livewire\Server\TransferImport as ServerTransferImport;
+use App\Livewire\Settings\AccessProtection as SettingsAccessProtection;
 use App\Livewire\Settings\Advanced as SettingsAdvanced;
 use App\Livewire\Settings\Index as SettingsIndex;
 use App\Livewire\Settings\Updates as SettingsUpdates;
@@ -178,6 +179,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/settings/backup', SettingsBackup::class)->name('settings.backup');
     Route::get('/settings/email', SettingsEmail::class)->name('settings.email');
     Route::get('/settings/oauth', SettingsOauth::class)->name('settings.oauth');
+    Route::get('/settings/access-protection', SettingsAccessProtection::class)->name('settings.access-protection');
     Route::get('/settings/oauth/{provider}', SettingsOauth::class)
         ->where('provider', '[A-Za-z0-9_-]+')
         ->name('settings.oauth.provider');
