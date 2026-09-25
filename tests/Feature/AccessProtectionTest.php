@@ -9,27 +9,40 @@ use Livewire\Livewire;
 /**
  * Avail: environment-wide Clerk login (Settings -> Access protection).
  */
-test('an environment switch protects production and previews of its apps', function () {
+test('an app follows its environment switch', function () {
     $application = new Application;
-    $application->preview_guard_scope = 'off';
     $application->setRelation('environment', new Environment(['name' => 'staging']));
 
-    expect(previewGuardEnabledFor($application, 0))->toBeFalse()
-        ->and(previewGuardEnabledFor($application, 7))->toBeFalse();
+    expect(previewGuardEnabledFor($application, 0))->toBeFalse();
 
     $application->environment->preview_guard_enabled = true;
 
-    expect(previewGuardEnabledFor($application, 0))->toBeTrue()
-        ->and(previewGuardEnabledFor($application, 7))->toBeTrue();
+    expect(previewGuardEnabledFor($application, 0))->toBeTrue();
 });
 
-test('the per-app scope still applies when the environment switch is off', function () {
+test('PR previews are always protected, even in a public environment', function () {
     $application = new Application;
-    $application->preview_guard_scope = 'previews';
     $application->setRelation('environment', new Environment(['name' => 'production']));
 
     expect(previewGuardEnabledFor($application, 0))->toBeFalse()
         ->and(previewGuardEnabledFor($application, 3))->toBeTrue();
+});
+
+test('the old per-app scope no longer affects protection', function () {
+    $application = new Application;
+    $application->preview_guard_scope = 'both';
+    $application->setRelation('environment', new Environment(['name' => 'production']));
+
+    expect(previewGuardEnabledFor($application, 0))->toBeFalse();
+});
+
+test('the app security section has no per-app Clerk option', function () {
+    $view = file_get_contents(resource_path('views/livewire/project/application/general.blade.php'));
+
+    expect($view)
+        ->not->toContain("'value' => 'clerk'")
+        ->not->toContain('previewGuardScope')
+        ->toContain("route('settings.access-protection')");
 });
 
 test('the access protection page is registered for instance settings', function () {
