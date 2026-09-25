@@ -16,7 +16,6 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -106,56 +105,22 @@ class Controller extends BaseController
             return redirect()->route('login')->with('error', 'Invitation has expired or been revoked.');
         }
 
-        [$user, $invitation] = $credentials;
+        [, $invitation] = $credentials;
 
-        return view('invitation.accept', [
-            'invitation' => $invitation,
-            'team' => $invitation->team,
-            'alreadyMember' => $user->teams()->where('team_id', $invitation->team_id)->exists(),
-            'formAction' => route('auth.link.accept'),
-            'token' => $token,
-        ]);
+        // Avail: Clerk is the only login, so a magic link never signs anyone in.
+        return redirect()->route('team.invitation.show', $invitation->uuid);
     }
 
     public function acceptLink(Request $request): RedirectResponse
     {
         $token = $request->input('token');
-        if (! is_string($token)) {
+        $credentials = is_string($token) ? $this->magicLinkCredentials($token) : null;
+        if (! $credentials) {
             return redirect()->route('login')->with('error', 'Invitation has expired or been revoked.');
         }
 
-        $acceptedInvitation = DB::transaction(function () use ($token) {
-            $credentials = $this->magicLinkCredentials($token, lockForUpdate: true);
-            if (! $credentials) {
-                return null;
-            }
-
-            [$user, $invitation] = $credentials;
-            $team = $invitation->team;
-            $alreadyMember = $user->teams()->where('team_id', $team->id)->exists();
-            if (! $alreadyMember) {
-                $user->teams()->attach($team->id, ['role' => $invitation->role]);
-            }
-
-            $user->forceFill([
-                'password' => Hash::make(Str::random(64)),
-            ])->save();
-            $invitation->delete();
-
-            return [$user, $team, $invitation, $alreadyMember];
-        });
-
-        if (! $acceptedInvitation) {
-            return redirect()->route('login')->with('error', 'Invitation has expired or been revoked.');
-        }
-
-        [$user, $team, $invitation, $alreadyMember] = $acceptedInvitation;
-
-        Auth::login($user);
-        session(['currentTeam' => $team]);
-        $this->auditInvitationAccepted($user, $invitation, $alreadyMember);
-
-        return redirect()->route('dashboard');
+        // Avail: Clerk is the only login, so a magic link never signs anyone in.
+        return redirect()->route('team.invitation.show', $credentials[1]->uuid);
     }
 
     /**
