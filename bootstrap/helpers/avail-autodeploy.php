@@ -24,6 +24,9 @@ function availAutoDeployApplication(Application $application): ?string
         if ($application->build_pack === 'dockercompose' && is_null($application->docker_compose_raw)) {
             return null;
         }
+        if (\App\Services\GithubConnect\GithubConnect::sourceProblem($application->source)) {
+            return null;
+        }
         $needsImageName = $application->destination?->server?->isSwarm()
             || data_get($application, 'settings.is_build_server_enabled')
             || $application->additional_servers()->count() > 0;

@@ -18,6 +18,13 @@ return new class extends Migration
             });
         }
 
+        if (! Schema::hasColumn('github_apps', 'avail_installation_status')) {
+            Schema::table('github_apps', function (Blueprint $table) {
+                // null = active; 'suspended' or 'removed' after GitHub installation events.
+                $table->string('avail_installation_status')->nullable();
+            });
+        }
+
         if (! Schema::hasTable('github_connections')) {
             Schema::create('github_connections', function (Blueprint $table) {
                 $table->id();
@@ -36,6 +43,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('github_connections');
+
+        if (Schema::hasColumn('github_apps', 'avail_installation_status')) {
+            Schema::table('github_apps', function (Blueprint $table) {
+                $table->dropColumn('avail_installation_status');
+            });
+        }
 
         if (Schema::hasColumn('github_apps', 'is_avail_platform')) {
             Schema::table('github_apps', function (Blueprint $table) {

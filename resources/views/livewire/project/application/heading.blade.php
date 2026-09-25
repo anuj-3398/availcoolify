@@ -1,4 +1,11 @@
 <nav wire:poll.10000ms="checkStatus" class="w-full max-w-none pb-4 md:pb-6 lg:pb-0">
+    @php($githubSourceProblem = \App\Services\GithubConnect\GithubConnect::sourceProblem($application->source))
+    @if ($githubSourceProblem)
+        <div role="alert"
+            class="mb-3 rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-[12px] leading-5 text-error">
+            {{ $githubSourceProblem }} Deploys from GitHub are paused.
+        </div>
+    @endif
     @php
         $routeIs = fn (string|array $routes): bool => \Illuminate\Support\Str::is($routes, $activeRouteName);
         // Settings covers all configuration sub-pages (General, Webhooks, Domains, …),

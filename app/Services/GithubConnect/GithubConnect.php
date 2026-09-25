@@ -2,6 +2,7 @@
 
 namespace App\Services\GithubConnect;
 
+use App\Enums\ProcessStatus;
 use App\Models\GithubApp;
 use App\Models\GithubConnection;
 use App\Models\Team;
@@ -141,6 +142,8 @@ class GithubConnect
 
         return collect($response->json('installations', []))
             ->filter(fn ($installation) => (string) data_get($installation, 'app_id') === (string) $platform->app_id)
+            // Suspended installations can't be used until they are unsuspended on GitHub.
+            ->reject(fn ($installation) => filled(data_get($installation, 'suspended_at')))
             ->map(fn ($installation) => [
                 'id' => (int) data_get($installation, 'id'),
                 'account' => (string) data_get($installation, 'account.login'),
@@ -198,6 +201,11 @@ class GithubConnect
             ->where(fn ($query) => $query->where('team_id', $team->id)->orWhere('is_system_wide', true))
             ->first();
         if ($existing) {
+            // GitHub lists it again, so it's usable again (e.g. unsuspended).
+            if ($existing->avail_installation_status !== null) {
+                $existing->forceFill(['avail_installation_status' => null])->save();
+            }
+
             return $existing;
         }
 
@@ -212,6 +220,59 @@ class GithubConnect
         $source->save();
 
         return $source;
+    }
+
+    /**
+     * Record a GitHub `installation` webhook event on every source row of that installation.
+     */
+    public static function recordInstallationEvent(string|int|null $appId, string|int|null $installationId, ?string $action): int
+    {
+        $status = match ($action) {
+            'deleted' => 'removed',
+            'suspend' => 'suspended',
+            'created', 'unsuspend' => null,
+            default => false,
+        };
+        if ($status === false || blank($appId) || blank($installationId)) {
+            return 0;
+        }
+
+        return GithubApp::where('app_id', $appId)
+            ->where('installation_id', $installationId)
+            ->update(['avail_installation_status' => $status]);
+    }
+
+    /**
+     * Why an application can't deploy from its GitHub source right now, or null when it can.
+     */
+    public static function sourceProblem(mixed $source): ?string
+    {
+        if (! $source instanceof GithubApp) {
+            return null;
+        }
+        $account = $source->organization ?: str($source->name)->before(' (GitHub)')->toString();
+
+        return match ($source->avail_installation_status) {
+            'removed' => "GitHub source disconnected: the GitHub app was uninstalled from {$account}. Reinstall it on GitHub to deploy again.",
+            'suspended' => "GitHub source disconnected: the GitHub app is suspended on {$account}. Unsuspend it on GitHub to deploy again.",
+            default => null,
+        };
+    }
+
+    /**
+     * The GitHub commit status for a PR preview deployment state, or null when there is none.
+     *
+     * @return array{state: string, description: string, target_url: string}|null
+     */
+    public static function previewCommitStatus(ProcessStatus $status, string $logsUrl, ?string $previewUrl): ?array
+    {
+        return match ($status) {
+            ProcessStatus::QUEUED, ProcessStatus::IN_PROGRESS => ['state' => 'pending', 'description' => 'Preview is building', 'target_url' => $logsUrl],
+            ProcessStatus::FINISHED => ['state' => 'success', 'description' => 'Preview ready', 'target_url' => $previewUrl ?: $logsUrl],
+            ProcessStatus::ERROR => ['state' => 'failure', 'description' => 'Preview deployment failed', 'target_url' => $logsUrl],
+            ProcessStatus::KILLED, ProcessStatus::CANCELLED => ['state' => 'error', 'description' => 'Preview deployment stopped', 'target_url' => $logsUrl],
+            default => null,
+        };
     }
 
     private static function requirePlatform(): GithubApp

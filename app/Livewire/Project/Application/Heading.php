@@ -109,6 +109,12 @@ class Heading extends Component
         try {
             $this->authorize('deploy', $this->application);
 
+            if ($sourceProblem = \App\Services\GithubConnect\GithubConnect::sourceProblem($this->application->source)) {
+                $this->dispatch('error', 'Failed to deploy', $sourceProblem);
+
+                return;
+            }
+
             if ($this->application->build_pack === 'dockercompose' && is_null($this->application->docker_compose_raw)) {
                 $this->dispatch('error', 'Failed to deploy', 'Please load a Compose file first.');
 

@@ -9,6 +9,7 @@ use App\Jobs\GithubAppPermissionJob;
 use App\Jobs\ProcessGithubPullRequestWebhook;
 use App\Models\Application;
 use App\Models\GithubApp;
+use App\Services\GithubConnect\GithubConnect;
 use App\Models\PrivateKey;
 use Exception;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -293,6 +294,10 @@ class Github extends Controller
                 if ($action === 'new_permissions_accepted') {
                     GithubAppPermissionJob::dispatch($github_app);
                 }
+                // Avail: remember uninstalled / suspended installations so their apps stop deploying.
+                if ($x_github_event === 'installation') {
+                    GithubConnect::recordInstallationEvent($x_github_hook_installation_target_id, data_get($payload, 'installation.id'), $action);
+                }
 
                 return response('cool');
             }
@@ -362,6 +367,16 @@ class Github extends Controller
                         $return_payloads->push([
                             'status' => 'failed',
                             'message' => 'Server is not functional.',
+                            'application_uuid' => $application->uuid,
+                            'application_name' => $application->name,
+                        ]);
+
+                        continue;
+                    }
+                    if ($sourceProblem = GithubConnect::sourceProblem($application->source)) {
+                        $return_payloads->push([
+                            'status' => 'failed',
+                            'message' => $sourceProblem,
                             'application_uuid' => $application->uuid,
                             'application_name' => $application->name,
                         ]);
