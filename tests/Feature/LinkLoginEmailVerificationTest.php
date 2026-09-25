@@ -56,7 +56,8 @@ describe('invitation link login', function () {
         expect($user->email_verified_at)->toBeNull();
     });
 
-    test('still logs the user in', function () {
+    // Avail: Clerk is the only login, so a magic link never signs anyone in.
+    test('does not log the user in', function () {
         $team = Team::factory()->create();
         $password = 'test-password-123';
         $user = User::factory()->create([
@@ -78,8 +79,8 @@ describe('invitation link login', function () {
         ]);
 
         $this->post(route('auth.link.accept'), ['token' => $token])
-            ->assertRedirect(route('dashboard'));
+            ->assertRedirect(route('team.invitation.show', $uuid));
 
-        expect(auth()->id())->toBe($user->id);
+        $this->assertGuest();
     });
 });
