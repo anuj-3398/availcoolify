@@ -39,9 +39,10 @@ class DecideWhatToDoWithUser
         }
         if (! auth()->user() || ! isCloud()) {
             // Avail: invitees sign in with Clerk first (landing in a fresh personal team), so
-            // onboarding must not swallow the redirect back to their invitation.
+            // onboarding must not swallow the redirect back to their invitation, nor the GitHub
+            // connect round trip (github/connect, github/install, github/callback).
             if (! isCloud() && showBoarding() && ! in_array($request->path(), allowedPathsForBoardingAccounts())
-                && ! Str::startsWith($request->path(), 'invitations')) {
+                && ! Str::startsWith($request->path(), ['invitations', 'github/'])) {
                 return redirect()->route('onboarding');
             }
 

@@ -6,6 +6,7 @@ use App\Models\Application;
 use App\Models\GithubApp;
 use App\Models\Project;
 use App\Rules\ValidGitBranch;
+use App\Services\GithubConnect\GithubConnect;
 use App\Support\ValidationPatterns;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Http;
@@ -20,6 +21,19 @@ class GithubPrivateRepository extends Component
     public $current_step = 'github_apps';
 
     public $github_apps;
+
+    // Avail: Vercel-style GitHub connect (one platform app, per-user GitHub connection).
+    public bool $githubConnectEnabled = false;
+
+    public ?string $githubLogin = null;
+
+    public array $githubAccounts = [];
+
+    public ?string $githubConnectError = null;
+
+    public bool $canAddGithubAccounts = false;
+
+    public string $returnPath = '/';
 
     public GithubApp $github_app;
 
@@ -78,6 +92,54 @@ class GithubPrivateRepository extends Component
             ->where('is_public', false)
             ->whereNotNull('app_id')
             ->get();
+
+        $this->returnPath = request()->getRequestUri();
+        $this->githubConnectEnabled = GithubConnect::isEnabled();
+        if ($this->githubConnectEnabled) {
+            $platformAppId = (string) GithubConnect::platformApp()->app_id;
+            // Installations of the platform app are offered per user below, not as separate apps.
+            $this->github_apps = $this->github_apps
+                ->reject(fn (GithubApp $app) => (string) $app->app_id === $platformAppId)
+                ->values();
+            $this->canAddGithubAccounts = (bool) auth()->user()?->isAdmin();
+            $this->loadGithubAccounts();
+        }
+    }
+
+    public function loadGithubAccounts(): void
+    {
+        $this->githubAccounts = [];
+        $this->githubConnectError = null;
+        $connection = GithubConnect::connection(auth()->user());
+        $this->githubLogin = $connection?->github_login;
+        if (! $connection) {
+            return;
+        }
+
+        try {
+            $this->githubAccounts = GithubConnect::installations(auth()->user())->all();
+        } catch (\Throwable $e) {
+            $this->githubConnectError = $e->getMessage();
+        }
+    }
+
+    /**
+     * Open one of the user's GitHub accounts/organisations: its team-scoped source is created on
+     * first use, then its repositories are listed (only those the user can push to).
+     */
+    public function loadAccount(int $installationId)
+    {
+        try {
+            $this->authorize('create', Application::class);
+            $installation = GithubConnect::installations(auth()->user())->firstWhere('id', $installationId);
+            if (! $installation) {
+                throw new \RuntimeException('This GitHub account is not available to you.');
+            }
+            $source = GithubConnect::sourceForInstallation(currentTeam(), $installation);
+            $this->loadRepositories($source->id);
+        } catch (\Throwable $e) {
+            return handleError($e, $this);
+        }
     }
 
     public function updatedSelectedRepositoryId(): void
@@ -125,7 +187,12 @@ class GithubPrivateRepository extends Component
                 $this->repositories = $this->repositories->concat(collect($repositories['repositories']));
             }
         }
-        $this->repositories = $this->repositories->sortBy('name');
+        if (GithubConnect::isPlatformSource($this->github_app)) {
+            // Only repositories the signed-in user can push to on GitHub.
+            $pushable = GithubConnect::pushableRepositoryIds(auth()->user(), (int) $this->github_app->installation_id);
+            $this->repositories = $this->repositories->whereIn('id', $pushable->all());
+        }
+        $this->repositories = $this->repositories->sortBy('name')->values();
         if ($this->repositories->count() > 0) {
             $this->selected_repository_id = data_get($this->repositories->first(), 'id');
         }
@@ -193,6 +260,13 @@ class GithubPrivateRepository extends Component
 
             if ($validator->fails()) {
                 throw new \RuntimeException('Invalid repository data: '.$validator->errors()->first());
+            }
+
+            // Avail: re-check write access server-side; the picker list alone is not trusted.
+            if (GithubConnect::isPlatformSource($this->github_app)
+                && ! GithubConnect::pushableRepositoryIds(auth()->user(), (int) $this->github_app->installation_id)
+                    ->contains($this->selected_repository_id)) {
+                throw new \RuntimeException('You need write access to this repository on GitHub to deploy it.');
             }
 
             $destination_uuid = $this->query['destination'] ?? null;
