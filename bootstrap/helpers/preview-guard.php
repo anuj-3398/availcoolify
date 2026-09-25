@@ -21,6 +21,11 @@ const PREVIEW_GUARD_TOKEN_PARAM = '__coolify_guard_token';
 
 function previewGuardEnabledFor(Application $application, int $pullRequestId = 0): bool
 {
+    // An environment-wide switch (Settings -> Access protection) covers production and previews.
+    if (data_get($application, 'environment.preview_guard_enabled')) {
+        return true;
+    }
+
     $scope = data_get($application, 'preview_guard_scope', 'off') ?? 'off';
 
     if ($pullRequestId === 0) {
@@ -114,4 +119,22 @@ function applyPreviewGuardLabels(Collection $labels, Application $application, ?
     }
 
     return $labels->sort()->values();
+}
+
+/**
+ * Re-generate the stored (Coolify-managed) proxy labels of every application in an environment,
+ * so an environment-wide protection change reaches them on their next deploy.
+ * Returns the applications whose running containers need a redeploy.
+ */
+function refreshPreviewGuardLabelsForEnvironment(\App\Models\Environment $environment): Collection
+{
+    return $environment->applications()->with(['settings', 'environment', 'destination.server.settings'])->get()
+        ->each(function (Application $application) {
+            if (! $application->settings?->is_container_label_readonly_enabled) {
+                return;
+            }
+            $application->custom_labels = base64_encode(implode("\n", generateLabelsApplication($application)));
+            $application->save();
+        })
+        ->values();
 }
