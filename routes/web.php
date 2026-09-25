@@ -14,6 +14,7 @@ use App\Livewire\Destination\Index as DestinationIndex;
 use App\Livewire\Destination\Resources as DestinationResources;
 use App\Livewire\Destination\Show as DestinationShow;
 use App\Livewire\Dev\LivewireRequestFailurePreview;
+use App\Livewire\DeveloperGuide;
 use App\Livewire\ForcePasswordReset;
 use App\Livewire\Notifications\Discord as NotificationDiscord;
 use App\Livewire\Notifications\Email as NotificationEmail;
@@ -183,6 +184,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', ProfileIndex::class)->name('profile');
     Route::get('/profile/avatar', ProfileAvatarController::class)->name('profile.avatar');
     Route::get('/profile/appearance', ProfileAppearance::class)->name('profile.appearance');
+    Route::get('/developer-guide', DeveloperGuide::class)->name('developer-guide');
 
     Route::prefix('tags')->group(function () {
         Route::get('/{tagName?}', TagsShow::class)->name('tags.show');
