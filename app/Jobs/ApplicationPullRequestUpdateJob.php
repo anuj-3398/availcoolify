@@ -56,6 +56,8 @@ class ApplicationPullRequestUpdateJob implements ShouldBeEncrypted, ShouldQueue
             $this->build_logs_url = base_url()."/project/{$this->application->environment->project->uuid}/environment/{$this->application->environment->uuid}/application/{$this->application->uuid}/deployment/{$this->deployment_uuid}";
             $application_logs_url = base_url()."/project/{$this->application->environment->project->uuid}/environment/{$this->application->environment->uuid}/application/{$this->application->uuid}/logs";
 
+            $this->updateCommitStatus();
+
             $this->body .= '[Open Build Logs]('.$this->build_logs_url.') | [Open Application Logs]('.$application_logs_url.")\n\n\n";
             $this->body .= 'Last updated at: '.now()->toDateTimeString().' CET';
             if ($this->preview->pull_request_issue_comment_id) {
@@ -65,6 +67,34 @@ class ApplicationPullRequestUpdateJob implements ShouldBeEncrypted, ShouldQueue
             }
         } catch (\Throwable $e) {
             return $e;
+        }
+    }
+
+    /**
+     * Avail: "Preview ready" style status check on the PR's head commit. Needs the GitHub App's
+     * "Commit statuses: write" permission; without it GitHub refuses and the comment still works.
+     */
+    private function updateCommitStatus(): void
+    {
+        try {
+            $commit = \App\Models\ApplicationDeploymentQueue::where('deployment_uuid', $this->deployment_uuid)->value('commit');
+            if (blank($commit) || $commit === 'HEAD') {
+                return;
+            }
+            $previewUrl = str($this->preview->fqdn ?? '')->explode(',')->map(fn ($url) => trim($url))->filter()->first();
+            $status = \App\Services\GithubConnect\GithubConnect::previewCommitStatus($this->status, $this->build_logs_url, $previewUrl);
+            if (! $status) {
+                return;
+            }
+            githubApi(
+                source: $this->application->source,
+                endpoint: "/repos/{$this->application->git_repository}/statuses/{$commit}",
+                method: 'post',
+                data: [...$status, 'context' => 'AvailCoolify preview / '.$this->application->name],
+                throwError: false,
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::info('Preview commit status not updated: '.$e->getMessage());
         }
     }
 
