@@ -218,7 +218,7 @@ class GitlabPrivateRepository extends Component
             $application->name = generate_application_name($this->selected_repository_path, $this->selected_branch_name, $application->uuid);
             $application->save();
 
-            return redirect()->route('project.application.configuration', [
+            return availRedirectAfterApplicationCreated($application, [
                 'application_uuid' => $application->uuid,
                 'environment_uuid' => $environment->uuid,
                 'project_uuid' => $project->uuid,
