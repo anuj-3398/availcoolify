@@ -327,8 +327,14 @@ class Github extends Controller
             if (! $id || ! $branch) {
                 return response('Nothing to do. No id or branch found.');
             }
+            // Avail: one platform GitHub App has a source row per installation (same app id), so
+            // match every row of this app, narrowed to the installation the event came from.
+            $installation_id = data_get($payload, 'installation.id');
+            $source_ids = GithubApp::where('app_id', $x_github_hook_installation_target_id)
+                ->when($installation_id, fn ($query) => $query->where('installation_id', $installation_id))
+                ->pluck('id');
             $applications = Application::where('repository_project_id', $id)
-                ->where('source_id', $github_app->id)
+                ->whereIn('source_id', $source_ids)
                 ->whereRelation('source', 'is_public', false);
             if ($x_github_event === 'push') {
                 $applications = $applications->where('git_branch', $branch)->get();
@@ -444,7 +450,8 @@ class Github extends Controller
 
                         ProcessGithubPullRequestWebhook::dispatch(
                             applicationId: $application->id,
-                            githubAppId: $github_app->id,
+                            // The application's own source: its installation token reaches this repo.
+                            githubAppId: $application->source_id,
                             action: $action,
                             pullRequestId: $pull_request_id,
                             pullRequestHtmlUrl: $pull_request_html_url,

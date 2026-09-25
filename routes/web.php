@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\GithubConnectController;
 use App\Http\Controllers\OauthController;
 use App\Http\Controllers\PreviewGuardController;
 use App\Http\Controllers\ProfileAvatarController;
@@ -187,6 +188,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile/avatar', ProfileAvatarController::class)->name('profile.avatar');
     Route::get('/profile/appearance', ProfileAppearance::class)->name('profile.appearance');
     Route::get('/developer-guide', DeveloperGuide::class)->name('developer-guide');
+    Route::get('/github/connect', [GithubConnectController::class, 'start'])->name('github-connect.start');
+    Route::get('/github/install', [GithubConnectController::class, 'install'])->name('github-connect.install');
+    Route::get('/github/callback', [GithubConnectController::class, 'callback'])->name('github-connect.callback');
+    Route::post('/github/disconnect', [GithubConnectController::class, 'disconnect'])->name('github-connect.disconnect');
 
     Route::prefix('tags')->group(function () {
         Route::get('/{tagName?}', TagsShow::class)->name('tags.show');

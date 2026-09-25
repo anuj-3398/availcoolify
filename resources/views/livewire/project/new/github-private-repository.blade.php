@@ -1,5 +1,79 @@
 <div class="mt-8 flex w-full max-w-none flex-col gap-6 lg:mt-3">
-    @if ($github_apps->isEmpty())
+    @if ($githubConnectEnabled && $current_step === 'github_apps')
+        {{-- Avail: Vercel-style GitHub connect --}}
+        <section class="application-settings-section">
+            <div class="application-settings-section-header">
+                <div>
+                    <h2>Import from GitHub</h2>
+                    @if ($githubLogin)
+                        <p>Connected as <strong>&#64;{{ $githubLogin }}</strong>. Pick an account or organisation; you'll see the repositories you can push to.</p>
+                    @else
+                        <p>Connect your GitHub account to see the repositories you can deploy.</p>
+                    @endif
+                </div>
+                @if ($githubLogin)
+                    <form method="POST" action="{{ route('github-connect.disconnect') }}">
+                        @csrf
+                        <input type="hidden" name="return" value="{{ $returnPath }}">
+                        <x-forms.button type="submit">Disconnect GitHub</x-forms.button>
+                    </form>
+                @endif
+            </div>
+            <div class="application-settings-section-body p-0!">
+                @if (! $githubLogin)
+                    <div class="p-4">
+                        <a class="button" href="{{ route('github-connect.start', ['return' => $returnPath]) }}">
+                            <x-reicon name="sources" class="size-4" />
+                            Continue with GitHub
+                        </a>
+                    </div>
+                @elseif ($githubConnectError)
+                    <div class="flex flex-col gap-3 p-4">
+                        <p class="text-sm text-error">{{ $githubConnectError }}</p>
+                        <a class="button w-fit" href="{{ route('github-connect.start', ['return' => $returnPath]) }}">Reconnect GitHub</a>
+                    </div>
+                @else
+                    @forelse ($githubAccounts as $account)
+                        <div wire:key="github-account-{{ $account['id'] }}"
+                            class="flex items-center gap-3 border-b border-neutral-200 px-4 py-3 last:border-b-0 dark:border-white/[0.06]">
+                            <button type="button" class="group flex min-w-0 flex-1 items-center gap-3 text-left"
+                                wire:click.prevent="loadAccount({{ $account['id'] }})" wire:loading.class="coolbox-loading"
+                                wire:loading.attr="disabled" wire:target="loadAccount({{ $account['id'] }})">
+                                @if ($account['avatar'])
+                                    <img src="{{ $account['avatar'] }}" alt="" class="size-9 shrink-0 rounded-lg" />
+                                @else
+                                    <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 dark:bg-white/[0.06] dark:text-fg-dim">
+                                        <x-reicon name="sources" class="size-4" />
+                                    </div>
+                                @endif
+                                <div class="min-w-0">
+                                    <div class="truncate text-sm font-semibold text-black group-hover:underline dark:text-fg">{{ $account['account'] }}</div>
+                                    <p class="mt-0.5 truncate text-xs text-neutral-500 dark:text-fg-dim">
+                                        {{ $account['type'] === 'Organization' ? 'Organisation' : 'Personal account' }}
+                                        &middot; {{ $account['selection'] === 'all' ? 'all repositories' : 'selected repositories' }}
+                                    </p>
+                                </div>
+                            </button>
+                            @if ($account['settings_url'])
+                                <a target="_blank" rel="noopener noreferrer" class="text-xs text-neutral-500 underline underline-offset-2 dark:text-fg-dim"
+                                    href="{{ $account['settings_url'] }}">Adjust repository access</a>
+                            @endif
+                        </div>
+                    @empty
+                        <p class="p-4 text-sm text-neutral-500 dark:text-fg-dim">
+                            The AvailCoolify GitHub app isn't installed on any account or organisation you can access yet.
+                        </p>
+                    @endforelse
+                    @if ($canAddGithubAccounts)
+                        <div class="border-t border-neutral-200 px-4 py-3 dark:border-white/[0.06]">
+                            <a class="text-sm font-medium underline underline-offset-2"
+                                href="{{ route('github-connect.install', ['return' => $returnPath]) }}">+ Add GitHub account or organisation</a>
+                        </div>
+                    @endif
+                @endif
+            </div>
+        </section>
+    @elseif (! $githubConnectEnabled && $github_apps->isEmpty())
         <section class="application-settings-section">
             <div class="application-settings-section-header">
                 <div>
@@ -88,7 +162,9 @@
                     </div>
                 @else
                     <x-empty size="sm" title="No repositories available"
-                        description="Review this GitHub App installation and grant access to a repository." />
+                        :description="$githubConnectEnabled
+                            ? 'You have no repositories with write access in this account, or the app can\'t see them. Adjust repository access on GitHub.'
+                            : 'Review this GitHub App installation and grant access to a repository.'" />
                 @endif
             </div>
         </section>
