@@ -108,6 +108,12 @@
                 Documentation
             </span>
         </a>
+        <a href="{{ route('developer-guide') }}" {{ wireNavigate() }} class="listbox-option">
+            <span class="flex items-center gap-2">
+                <x-reicon name="code" class="size-4 opacity-80" />
+                Developer Guide
+            </span>
+        </a>
 
         <div class="my-1 h-px bg-neutral-200 dark:bg-white/[0.07]"></div>
 
