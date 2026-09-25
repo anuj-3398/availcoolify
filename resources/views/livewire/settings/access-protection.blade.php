@@ -4,11 +4,12 @@
     <x-settings.layout>
         <div class="application-settings-form flex min-w-0 flex-col gap-6">
             <x-application.settings-section title="Access protection"
-                helper="Turn Clerk login on for a whole environment. Every app in it, production URLs and PR previews, then only lets members of the app's team in.">
+                helper="Each switch decides whether every app in that environment requires a Clerk login from a member of the app's team.">
                 <p class="text-[12px] leading-5 text-neutral-600 dark:text-fg-dim">
-                    Applies to apps built from Git, a Dockerfile or an image (not Docker Compose apps or services).
-                    Changes reach an app on its next deploy. Apps can also be protected one by one under
-                    <strong>Security &rarr; Authentication</strong>.
+                    On: every app in the environment requires a Clerk login. Off: its apps are public.
+                    PR preview deployments always require a Clerk login, whatever the switch says.
+                    Changes reach an app on its next deploy. Applies to apps built from Git, a Dockerfile or an
+                    image (not Docker Compose apps or services).
                 </p>
             </x-application.settings-section>
 
