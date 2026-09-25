@@ -24,7 +24,7 @@ Anyone who deploys needs **Admin**; give **Member** to people who only need to l
 
 Push to the app's branch and it redeploys automatically. Everything lives under **Root Team → Pilot → production** today.
 
-- **Source:** repos connect through the GitHub App `pilot-availcoolify-app`. Only repos that app is installed on can be deployed; ask Anuj to add a repo.
+- **Source:** New resource → **Git Repository (with GitHub App)** → **Continue with GitHub** (once), then pick an account or organisation. You see every repo there you can push to. If an account or org is missing, an admin uses **+ Add GitHub account or organisation**; if a repo is missing, use **Adjust repository access**.
 - **Auto-deploy:** a push to the app's branch (e.g. `main`) starts a build within seconds.
 - **Manual deploy:** open the app → **Deploy** (or **Redeploy**). Use **Restart** when only the container needs restarting, not a rebuild.
 - **Build:** apps build with Railpack, which detects the language from the repo. A Dockerfile or Docker Compose file can be used instead (app → Configuration → Build Pack).
