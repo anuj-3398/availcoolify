@@ -58,14 +58,13 @@ function createInvitationLinkFixture(array $invitationAttributes = []): array
     return [$team, $user, $password, $token, $invitation];
 }
 
-it('shows a valid magic link invitation without consuming it', function () {
-    [$team, $user, $password, $token] = createInvitationLinkFixture();
+// Avail: Clerk is the only login. A magic link never signs anyone in or redeems the
+// invitation; it only forwards to the invitation page, which requires a Clerk login.
+it('forwards a valid magic link to the invitation page without signing in or consuming it', function () {
+    [$team, $user, $password, $token, $invitation] = createInvitationLinkFixture();
 
     $this->get(route('auth.link', ['token' => $token]))
-        ->assertSuccessful()
-        ->assertViewIs('invitation.accept')
-        ->assertSee($team->name)
-        ->assertSee('Accept invitation');
+        ->assertRedirect(route('team.invitation.show', $invitation->uuid));
 
     $this->assertGuest();
     $this->assertDatabaseHas('team_invitations', ['email' => $user->email]);
@@ -92,7 +91,7 @@ it('finds the matching invitation for a legacy token when the email has multiple
         'via' => 'link',
     ]);
 
-    TeamInvitation::create([
+    $matching = TeamInvitation::create([
         'team_id' => $team->id,
         'uuid' => (string) new Cuid2(32),
         'email' => $user->email,
@@ -102,114 +101,28 @@ it('finds the matching invitation for a legacy token when the email has multiple
     ]);
 
     $this->get(route('auth.link', ['token' => $legacyToken]))
-        ->assertSuccessful()
-        ->assertViewHas('team', $team);
+        ->assertRedirect(route('team.invitation.show', $matching->uuid));
 });
 
-it('does not count confirmation requests against the acceptance throttle', function () {
-    [, $user, , $token] = createInvitationLinkFixture();
-
-    foreach (range(1, 5) as $attempt) {
-        $this->get(route('auth.link', ['token' => $token]))
-            ->assertSuccessful();
-    }
+it('does not sign in or redeem the invitation when a magic link is posted', function () {
+    [$team, $user, $password, $token, $invitation] = createInvitationLinkFixture();
 
     $this->post(route('auth.link.accept'), ['token' => $token])
-        ->assertRedirect(route('dashboard'));
-
-    $this->assertAuthenticatedAs($user);
-});
-
-it('throttles acceptance independently for different magic link tokens from the same IP', function () {
-    [, $user, , $token] = createInvitationLinkFixture();
-
-    foreach (range(1, 5) as $attempt) {
-        $this->post(route('auth.link.accept'), ['token' => 'another-token'])
-            ->assertRedirect(route('login'));
-    }
-
-    $this->post(route('auth.link.accept'), ['token' => $token])
-        ->assertRedirect(route('dashboard'));
-
-    $this->assertAuthenticatedAs($user);
-});
-
-it('accepts a valid magic link invitation on post only once and rotates the temporary password', function () {
-    [$team, $user, $password, $token] = createInvitationLinkFixture();
-
-    $this->post(route('auth.link.accept'), ['token' => $token])
-        ->assertRedirect(route('dashboard'));
-
-    $this->assertAuthenticatedAs($user);
-    $this->assertDatabaseMissing('team_invitations', ['email' => $user->email]);
-    expect($user->teams()->where('team_id', $team->id)->exists())->toBeTrue();
-
-    $user->refresh();
-    expect(Hash::check($password, $user->password))->toBeFalse();
-
-    auth()->logout();
-    session()->flush();
-
-    $this->post(route('auth.link.accept'), ['token' => $token])
-        ->assertRedirect(route('login'));
+        ->assertRedirect(route('team.invitation.show', $invitation->uuid));
 
     $this->assertGuest();
-});
-
-it('rolls back invitation redemption when password rotation fails', function () {
-    [$team, $user, $password, $token, $invitation] = createInvitationLinkFixture();
-    $this->withoutExceptionHandling();
-
-    User::updating(function (User $updatingUser) use ($user) {
-        if ($updatingUser->is($user)) {
-            throw new RuntimeException('Password rotation failed.');
-        }
-    });
-
-    expect(fn () => $this->post(route('auth.link.accept'), ['token' => $token]))
-        ->toThrow(RuntimeException::class, 'Password rotation failed.');
-
-    $this->assertDatabaseHas('team_invitations', ['id' => $invitation->id]);
+    $this->assertDatabaseHas('team_invitations', ['uuid' => $invitation->uuid]);
     expect($user->teams()->where('team_id', $team->id)->exists())->toBeFalse();
 
     $user->refresh();
     expect(Hash::check($password, $user->password))->toBeTrue();
+});
+
+it('sends an invalid posted magic link to the login page', function () {
+    $this->post(route('auth.link.accept'), ['token' => 'not-a-valid-token'])
+        ->assertRedirect(route('login'));
+
     $this->assertGuest();
-});
-
-it('accepts a magic link when opened from a different public origin', function () {
-    [$team, $user, $password, $token] = createInvitationLinkFixture();
-
-    $this->post('https://coolify.example.com/auth/link', ['token' => $token])
-        ->assertRedirect(route('dashboard'));
-
-    $this->assertAuthenticatedAs($user);
-    $this->assertDatabaseMissing('team_invitations', ['email' => $user->email]);
-    expect($user->teams()->where('team_id', $team->id)->exists())->toBeTrue();
-
-    $user->refresh();
-    expect(Hash::check($password, $user->password))->toBeFalse();
-});
-
-it('keeps the invited user authenticated after rotating the temporary password with database sessions', function () {
-    $this->withMiddleware([CheckForcePasswordReset::class, DecideWhatToDoWithUser::class]);
-    Config::set('session.driver', 'database');
-
-    [$team, $user, $password, $token] = createInvitationLinkFixture();
-
-    $this->post(route('auth.link.accept'), ['token' => $token])
-        ->assertRedirect(route('dashboard'));
-
-    expect(DB::table('sessions')->where('user_id', $user->id)->exists())->toBeTrue();
-
-    $this->get(route('dashboard'))
-        ->assertRedirect(route('auth.force-password-reset'));
-
-    $this->assertAuthenticatedAs($user);
-    expect($user->teams()->where('team_id', $team->id)->exists())->toBeTrue();
-
-    $user->refresh();
-    expect(Hash::check($password, $user->password))->toBeFalse();
 });
 
 it('rejects a magic link when the stored invitation token differs', function () {

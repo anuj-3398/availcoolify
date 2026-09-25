@@ -165,7 +165,8 @@ describe('privilege escalation prevention', function () {
         ]);
     });
 
-    test('new user invitation magic link uses instance fqdn when configured', function () {
+    // Avail: new users get the normal invitation link (Clerk login), never a password magic link.
+    test('new user invitation link uses instance fqdn when configured', function () {
         InstanceSettings::unguarded(fn () => InstanceSettings::query()->updateOrCreate(
             ['id' => 0],
             ['fqdn' => 'https://coolify.example.com']
@@ -182,10 +183,11 @@ describe('privilege escalation prevention', function () {
 
         $invitation = TeamInvitation::whereEmail('fqdn-invitee@example.com')->firstOrFail();
 
-        expect($invitation->link)->toStartWith('https://coolify.example.com/auth/link?token=');
+        expect($invitation->link)->toBe('https://coolify.example.com/invitations/'.$invitation->uuid)
+            ->and(User::whereEmail('fqdn-invitee@example.com')->exists())->toBeFalse();
     });
 
-    test('new user invitation magic link falls back to route url when instance fqdn is not configured', function () {
+    test('new user invitation link falls back to route url when instance fqdn is not configured', function () {
         InstanceSettings::unguarded(fn () => InstanceSettings::query()->updateOrCreate(
             ['id' => 0],
             ['fqdn' => null]
@@ -202,8 +204,8 @@ describe('privilege escalation prevention', function () {
 
         $invitation = TeamInvitation::whereEmail('fallback-invitee@example.com')->firstOrFail();
 
-        $expectedPrefix = route('auth.link', ['token' => '']);
-        expect($invitation->link)->toStartWith($expectedPrefix);
+        expect($invitation->link)->toBe(route('team.invitation.show', ['uuid' => $invitation->uuid]))
+            ->and(User::whereEmail('fallback-invitee@example.com')->exists())->toBeFalse();
     });
 
     test('member cannot bypass policy by calling viaEmail', function () {

@@ -38,7 +38,10 @@ class DecideWhatToDoWithUser
             }
         }
         if (! auth()->user() || ! isCloud()) {
-            if (! isCloud() && showBoarding() && ! in_array($request->path(), allowedPathsForBoardingAccounts())) {
+            // Avail: invitees sign in with Clerk first (landing in a fresh personal team), so
+            // onboarding must not swallow the redirect back to their invitation.
+            if (! isCloud() && showBoarding() && ! in_array($request->path(), allowedPathsForBoardingAccounts())
+                && ! Str::startsWith($request->path(), 'invitations')) {
                 return redirect()->route('onboarding');
             }
 

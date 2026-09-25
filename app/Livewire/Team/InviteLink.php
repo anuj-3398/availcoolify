@@ -3,12 +3,8 @@
 namespace App\Livewire\Team;
 
 use App\Models\TeamInvitation;
-use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Livewire\Component;
 
 class InviteLink extends Component
@@ -72,19 +68,8 @@ class InviteLink extends Component
             }
             $uuid = new_public_id(32);
             $link = $this->invitationUrl('team.invitation.show', ['uuid' => $uuid]);
-            $user = User::whereEmail($this->email)->first();
-
-            if (is_null($user)) {
-                $password = Str::password();
-                $user = User::create([
-                    'name' => str($this->email)->before('@'),
-                    'email' => $this->email,
-                    'password' => Hash::make($password),
-                    'force_password_reset' => true,
-                ]);
-                $token = Crypt::encryptString("{$user->email}@@@{$uuid}@@@{$password}");
-                $link = $this->invitationUrl('auth.link', ['token' => $token]);
-            }
+            // Avail: Clerk is the only login. No account is created here: the invitee signs in
+            // with Clerk (which creates the account), then accepts on the invitation page.
             $invitation = TeamInvitation::ownedByCurrentTeam()->whereEmail($this->email)->first();
             if (! is_null($invitation)) {
                 $invitationValid = $invitation->isValid();
