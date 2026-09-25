@@ -76,7 +76,7 @@ CMD ["nginx", "-g", "daemon off;"]
 
         $application->parseHealthcheckFromDockerfile(dockerfile: $this->dockerfile, isInit: true);
 
-        return redirect()->route('project.application.configuration', [
+        return availRedirectAfterApplicationCreated($application, [
             'application_uuid' => $application->uuid,
             'environment_uuid' => $environment->uuid,
             'project_uuid' => $project->uuid,

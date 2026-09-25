@@ -200,7 +200,7 @@ class GithubPrivateRepositoryDeployKey extends Component
             $application->name = generate_random_name($application->uuid);
             $application->save();
 
-            return redirect()->route('project.application.configuration', [
+            return availRedirectAfterApplicationCreated($application, [
                 'application_uuid' => $application->uuid,
                 'environment_uuid' => $environment->uuid,
                 'project_uuid' => $project->uuid,

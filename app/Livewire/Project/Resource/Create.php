@@ -69,6 +69,8 @@ class Create extends Component
                     $database = create_standalone_clickhouse($environment->id, $destination);
                 }
 
+                availAutoStartDatabase($database);
+
                 return redirect()->route('project.database.configuration', [
                     'project_uuid' => $project->uuid,
                     'environment_uuid' => $environment->uuid,

@@ -344,7 +344,7 @@ class PublicGitRepository extends Component
             $application->fqdn = $fqdn;
             $application->save();
 
-            return redirect()->route('project.application.configuration', [
+            return availRedirectAfterApplicationCreated($application, [
                 'application_uuid' => $application->uuid,
                 'environment_uuid' => $environment->uuid,
                 'project_uuid' => $project->uuid,
