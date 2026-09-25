@@ -9,6 +9,7 @@
             ['label' => 'Backup', 'route' => 'settings.backup', 'icon' => 'database'],
             ['label' => 'Email', 'route' => 'settings.email', 'icon' => 'mail'],
             ['label' => 'Authentication', 'route' => 'settings.oauth', 'icon' => 'keys'],
+            ['label' => 'Access protection', 'route' => 'settings.access-protection', 'icon' => 'admin'],
         ],
     ];
 @endphp
