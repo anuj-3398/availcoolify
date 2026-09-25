@@ -21,18 +21,13 @@ const PREVIEW_GUARD_TOKEN_PARAM = '__coolify_guard_token';
 
 function previewGuardEnabledFor(Application $application, int $pullRequestId = 0): bool
 {
-    // An environment-wide switch (Settings -> Access protection) covers production and previews.
-    if (data_get($application, 'environment.preview_guard_enabled')) {
+    // PR previews are unreviewed code: always behind the Clerk login.
+    if ($pullRequestId !== 0) {
         return true;
     }
 
-    $scope = data_get($application, 'preview_guard_scope', 'off') ?? 'off';
-
-    if ($pullRequestId === 0) {
-        return in_array($scope, ['production', 'both'], true);
-    }
-
-    return in_array($scope, ['previews', 'both'], true);
+    // An app's own URLs follow its environment's switch (Settings -> Access protection).
+    return (bool) data_get($application, 'environment.preview_guard_enabled', false);
 }
 
 /**
