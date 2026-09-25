@@ -34,7 +34,7 @@ App URLs currently look like `http://<id>.167.235.69.240.sslip.io` (plain HTTP).
 
 ## Preview deployments
 
-Every pull request gets its own private preview URL, behind a Clerk login that only lets members of the app's team in.
+Every pull request gets its own private preview URL. PR previews always sit behind a Clerk login that only lets members of the app's team in.
 
 1. **Open a PR** against the app's repo. AvailCoolify builds the PR branch and comments on the PR with the preview link.
 2. **Preview URL:** `http://<PR number>.<app id>.167.235.69.240.sslip.io`, e.g. PR 7 → `7.onx5amwtnwf1hwwqzfmelnb7.167.235.69.240.sslip.io`.
@@ -45,7 +45,16 @@ Opening a preview URL: if you aren't signed in, you're sent to the Clerk sign-in
 
 After one sign-in, a preview stays unlocked in that browser for 12 hours. Only PRs from repo owners, org members and collaborators build; PRs from forks never do. Put `[skip ci]` or `[skip cd]` in the PR title or commit message to skip a build.
 
-Protection is set per app under **Security → Authentication → Clerk login (team members only)**, with a scope of previews only, production only, or both. Scope changes reach an existing deployment after its next redeploy.
+## Access protection per environment
+
+Whether an app's own URLs need a Clerk login is decided by its environment, not per app. An admin sets it in **Settings → Access protection**, one switch per environment.
+
+| Environment type | Switch | Result |
+| --- | --- | --- |
+| Testing, e.g. `staging`, `preview-test` | On | Every app in it needs a Clerk login from a member of its team |
+| `production` | Off | Apps are public |
+
+Deploy to the testing environment first, check it there, then promote to production. PR previews need a Clerk login in every environment. A switch change reaches an app on its next deploy.
 
 ## Environment variables and secrets
 
