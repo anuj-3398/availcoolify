@@ -81,7 +81,7 @@ test('a push from an uninstalled installation does not deploy', function () {
 
     $project = Project::factory()->create(['team_id' => $team->id]);
     $environment = Environment::factory()->create(['project_id' => $project->id]);
-    $server = Server::factory()->create(['team_id' => $team->id]);
+    $server = Server::factory()->create(['team_id' => $team->id, 'ip' => '10.20.30.40']);
     $server->settings->update(['is_reachable' => true, 'is_usable' => true, 'force_disabled' => false]);
     $destination = $server->standaloneDockers()->firstOrFail();
     Application::create([
