@@ -289,6 +289,8 @@ class Application extends BaseModel
             $application->manual_webhook_secret_gitlab ??= Str::random(40);
             $application->manual_webhook_secret_bitbucket ??= Str::random(40);
             $application->manual_webhook_secret_gitea ??= Str::random(40);
+            // Avail: the creator may delete the app even as a team member.
+            $application->avail_created_by_user_id ??= auth()->id();
         });
         static::addGlobalScope('withRelations', function ($builder) {
             $builder->withCount([
