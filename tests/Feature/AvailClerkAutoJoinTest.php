@@ -54,3 +54,21 @@ test('without auto-join nobody is added to the root team', function () {
 
     expect($existing->teams()->whereKey(0)->exists())->toBeFalse();
 });
+
+test('nobody can create additional teams', function () {
+    $user = User::factory()->create();
+
+    expect($user->can('create', Team::class))->toBeFalse()
+        ->and($this->owner->can('create', Team::class))->toBeFalse();
+});
+
+test('a signed-in user left without a team joins the root team instead of a new personal team', function () {
+    $user = User::factory()->create();
+    $user->teams()->detach();
+    $teamsBefore = Team::count();
+
+    $this->actingAs($user)->get(route('dashboard'));
+
+    expect($user->fresh()->teams()->pluck('teams.id')->all())->toBe([0])
+        ->and(Team::count())->toBe($teamsBefore);
+});

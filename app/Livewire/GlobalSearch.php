@@ -959,15 +959,17 @@ class GlobalSearch extends Component
             ]);
         }
 
-        // Team - can be created by anyone (they become owner of new team)
-        $items->push([
-            'name' => 'Team',
-            'description' => 'Create a new team to collaborate with others',
-            'quickcommand' => '(type: new team)',
-            'type' => 'team',
-            'category' => 'Quick Actions',
-            'component' => 'team.create',
-        ]);
+        // Team - Avail: only when team creation is allowed (it is off: one Avail Team)
+        if ($user->can('create', \App\Models\Team::class)) {
+            $items->push([
+                'name' => 'Team',
+                'description' => 'Create a new team to collaborate with others',
+                'quickcommand' => '(type: new team)',
+                'type' => 'team',
+                'category' => 'Quick Actions',
+                'component' => 'team.create',
+            ]);
+        }
 
         // Storage - can be created if user is admin or owner
         if ($user->isAdmin() || $user->isOwner()) {
