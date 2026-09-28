@@ -28,23 +28,7 @@ beforeEach(function () {
     $this->team = $team;
 });
 
-it('renders a metrics chart only for servers with metrics enabled', function () {
-    $enabledServer = Server::factory()->create([
-        'team_id' => $this->team->id,
-        'private_key_id' => $this->privateKey->id,
-    ]);
-    $enabledServer->settings->update(['is_metrics_enabled' => true]);
-
-    $disabledServer = Server::factory()->create([
-        'team_id' => $this->team->id,
-        'private_key_id' => $this->privateKey->id,
-    ]);
-    $disabledServer->settings->update(['is_metrics_enabled' => false]);
-
-    Livewire::test(Dashboard::class)
-        ->assertSeeHtml("dashboard-server-metrics-{$enabledServer->uuid}")
-        ->assertDontSeeHtml("dashboard-server-metrics-{$disabledServer->uuid}");
-});
+// Avail: the dashboard has no Servers section; server metrics charts are on the Servers page.
 
 it('renders dashboard metrics charts on the server index grid', function () {
     $enabledServer = Server::factory()->create([
