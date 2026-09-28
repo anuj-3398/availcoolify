@@ -142,7 +142,7 @@ test('webhooks reach apps on any installation of the platform app, with their ow
 
     $project = Project::factory()->create(['team_id' => $team->id]);
     $environment = Environment::factory()->create(['project_id' => $project->id]);
-    $server = Server::factory()->create(['team_id' => $team->id]);
+    $server = Server::factory()->create(['team_id' => $team->id, 'ip' => '10.20.30.40']);
     $server->settings->update(['is_reachable' => true, 'is_usable' => true, 'force_disabled' => false]);
     $destination = $server->standaloneDockers()->firstOrFail();
     $application = Application::create([
@@ -168,7 +168,7 @@ test('webhooks reach apps on any installation of the platform app, with their ow
             'html_url' => 'https://github.com/availproject/hello-world/pull/7',
             'title' => 'Change',
             'author_association' => 'MEMBER',
-            'head' => ['ref' => 'feature', 'sha' => 'abc'],
+            'head' => ['ref' => 'feature', 'sha' => '0123456789abcdef0123456789abcdef01234567'],
             'base' => ['ref' => 'main'],
         ],
     ], JSON_THROW_ON_ERROR);
