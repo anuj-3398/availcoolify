@@ -2,7 +2,6 @@
 
 namespace App\Livewire;
 
-use App\Models\PrivateKey;
 use App\Models\Project;
 use App\Models\Server;
 use App\Models\TeamInvitation;
@@ -15,11 +14,8 @@ class Dashboard extends Component
 
     public Collection $servers;
 
-    public Collection $privateKeys;
-
     public function mount()
     {
-        $this->privateKeys = PrivateKey::ownedByCurrentTeamCached();
         $this->servers = Server::ownedByCurrentTeamCached();
         $this->projects = Project::ownedByCurrentTeam()
             ->with(['environments:id,uuid,name,project_id'])
