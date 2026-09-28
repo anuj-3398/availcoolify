@@ -101,7 +101,7 @@ class GithubPrivateRepository extends Component
             $this->github_apps = $this->github_apps
                 ->reject(fn (GithubApp $app) => (string) $app->app_id === $platformAppId)
                 ->values();
-            $this->canAddGithubAccounts = (bool) auth()->user()?->isAdmin();
+            $this->canAddGithubAccounts = (bool) auth()->user()?->can('createApplication');
             $this->loadGithubAccounts();
         }
         // Avail: team-wide GitHub sources give access to every repo in them, so they are admin-only.

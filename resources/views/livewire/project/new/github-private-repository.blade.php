@@ -62,12 +62,13 @@
                     @empty
                         <p class="p-4 text-sm text-neutral-500 dark:text-fg-dim">
                             The AvailCoolify GitHub app isn't installed on any account or organisation you can access yet.
+                            Install it on your GitHub account to deploy your repositories.
                         </p>
                     @endforelse
                     @if ($canAddGithubAccounts)
                         <div class="border-t border-neutral-200 px-4 py-3 dark:border-white/[0.06]">
                             <a class="text-sm font-medium underline underline-offset-2"
-                                href="{{ route('github-connect.install', ['return' => $returnPath]) }}">+ Add GitHub account or organisation</a>
+                                href="{{ route('github-connect.install', ['return' => $returnPath]) }}">+ Install on a GitHub account or organisation</a>
                         </div>
                     @endif
                 @endif
