@@ -115,32 +115,7 @@ test('admin sees deploy controls for application', function () {
         ->assertSee('Stop');
 });
 
-test('member cannot call deploy on application', function () {
-    $this->actingAs($this->member);
-    session(['currentTeam' => $this->team]);
-
-    Livewire::test(ApplicationHeading::class, ['application' => $this->application])
-        ->call('deploy')
-        ->assertDispatched('error');
-});
-
-test('member cannot call restart on application', function () {
-    $this->actingAs($this->member);
-    session(['currentTeam' => $this->team]);
-
-    Livewire::test(ApplicationHeading::class, ['application' => $this->application])
-        ->call('restart')
-        ->assertDispatched('error');
-});
-
-test('member cannot call stop on application', function () {
-    $this->actingAs($this->member);
-    session(['currentTeam' => $this->team]);
-
-    Livewire::test(ApplicationHeading::class, ['application' => $this->application])
-        ->call('stop')
-        ->assertDispatched('error');
-});
+// Avail: members may deploy, restart and stop applications (see AvailMemberDeployTest).
 
 test('member does not see terminal link for application', function () {
     $this->actingAs($this->member);
