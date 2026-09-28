@@ -29,6 +29,11 @@ class OauthLoginService
             ? $this->resolveOidcUser($oauthUser, $oauthSetting, $email)
             : $this->resolveOauthUser($oauthUser, $oauthSetting, $email);
 
+        // Avail: with auto-join on, existing users who aren't in the root team yet join it as members too.
+        if ($oauthSetting->auto_join_root_team && $user->id !== 0 && ! $user->teams()->whereKey(0)->exists() && Team::find(0)) {
+            $user->teams()->attach(0, ['role' => 'member']);
+        }
+
         // Choose the team like the password login: restore the last active team,
         // or the sole team. A multi-team user without a valid stored choice gets
         // no session team, so DecideWhatToDoWithUser shows the team selection.
