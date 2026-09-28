@@ -28,8 +28,8 @@ class TeamPolicy
      */
     public function create(User $user): bool
     {
-        // Avail: everyone works in the one Avail Team; no additional or personal teams.
-        return false;
+        // Avail: everyone works in the Avail Team (team 0); only its owner may create other teams.
+        return $user->roleInTeam(0) === 'owner';
     }
 
     /**
