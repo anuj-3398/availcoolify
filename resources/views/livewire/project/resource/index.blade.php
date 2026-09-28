@@ -30,7 +30,7 @@
                         Settings
                     </a>
                 @endcan
-                @can('createAnyResource')
+                @can('createApplication')
                     <a href="{{ route('project.resource.create', ['project_uuid' => $project->uuid, 'environment_uuid' => $environment->uuid]) }}"
                         {{ wireNavigate() }}
                         class="button whitespace-nowrap button-highlighted">
@@ -42,7 +42,7 @@
         </header>
 
         @if ($environment->isEmpty())
-            @can('createAnyResource')
+            @can('createApplication')
                 <x-empty title="No resources yet"
                     description="Add an application, database, or service to this environment."
                     icon-name="layers">

@@ -198,6 +198,16 @@ class Select extends Component
             ],
         ];
 
+        // Avail: members only get the application types they may create.
+        if (! auth()->user()->can('createAnyResource')) {
+            $allowed = availMemberResourceTypes();
+            $services = [];
+            $categories = [];
+            $databases = [];
+            $gitBasedApplications = array_values(array_filter($gitBasedApplications, fn ($app) => in_array($app['id'], $allowed, true)));
+            $dockerBasedApplications = array_values(array_filter($dockerBasedApplications, fn ($app) => in_array($app['id'], $allowed, true)));
+        }
+
         return [
             'serviceTemplatesLastUpdated' => $this->serviceTemplatesLastUpdated(),
             'services' => $services,
@@ -296,6 +306,11 @@ class Select extends Component
         }
 
         if ($this->loading) {
+            return;
+        }
+        if (! availCanCreateResourceType($type)) {
+            $this->dispatch('error', 'Only admins can create this type of resource.');
+
             return;
         }
         $this->loading = true;

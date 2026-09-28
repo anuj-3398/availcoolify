@@ -111,6 +111,7 @@ class Kernel extends HttpKernel
         'api.sensitive' => ApiSensitiveData::class,
         'api.token.team' => EnsureTokenBelongsToCurrentTeamMember::class,
         'can.create.resources' => CanCreateResources::class,
+        'can.create.applications' => \App\Http\Middleware\CanCreateApplications::class,
         'can.update.resource' => CanUpdateResource::class,
         'can.access.terminal' => CanAccessTerminal::class,
         'mcp.enabled' => EnsureMcpEnabled::class,

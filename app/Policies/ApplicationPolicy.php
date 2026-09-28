@@ -31,7 +31,8 @@ class ApplicationPolicy
      */
     public function create(User $user): bool
     {
-        return $user->isAdmin();
+        // Avail: members may create applications too (databases and services stay admin-only).
+        return in_array($user->role(), ['owner', 'admin', 'member'], true);
     }
 
     /**
@@ -58,8 +59,15 @@ class ApplicationPolicy
     public function delete(User $user, Application $application): bool
     {
         $teamId = $this->getTeamId($application);
+        if ($teamId === null) {
+            return false;
+        }
 
-        return $teamId !== null && $user->isAdminOfTeam($teamId);
+        // Avail: members may delete applications they created themselves.
+        return $user->isAdminOfTeam($teamId)
+            || ($application->avail_created_by_user_id !== null
+                && (int) $application->avail_created_by_user_id === (int) $user->id
+                && $user->teams->contains('id', $teamId));
     }
 
     /**
@@ -103,7 +111,8 @@ class ApplicationPolicy
     {
         $teamId = $this->getTeamId($application);
 
-        return $teamId !== null && $user->isAdminOfTeam($teamId);
+        // Avail: every team member may deploy, redeploy, restart and stop.
+        return $teamId !== null && $user->teams->contains('id', $teamId);
     }
 
     /**

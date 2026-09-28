@@ -105,8 +105,8 @@ test('admin can deploy application', function () {
     expect($this->admin->can('deploy', $this->application))->toBeTrue();
 });
 
-test('member cannot deploy application', function () {
-    expect($this->member->can('deploy', $this->application))->toBeFalse();
+test('member can deploy application', function () {
+    expect($this->member->can('deploy', $this->application))->toBeTrue();
 });
 
 // --- Application Policy: delete ---
@@ -131,41 +131,7 @@ test('member cannot manage application environment', function () {
 
 // --- Application Heading Livewire actions ---
 
-test('member cannot call deploy on application heading', function () {
-    $this->actingAs($this->member);
-    session(['currentTeam' => $this->team]);
-
-    Livewire::test(ApplicationHeading::class, ['application' => $this->application])
-        ->call('deploy')
-        ->assertDispatched('error');
-});
-
-test('member cannot call restart on application heading', function () {
-    $this->actingAs($this->member);
-    session(['currentTeam' => $this->team]);
-
-    Livewire::test(ApplicationHeading::class, ['application' => $this->application])
-        ->call('restart')
-        ->assertDispatched('error');
-});
-
-test('member cannot call stop on application heading', function () {
-    $this->actingAs($this->member);
-    session(['currentTeam' => $this->team]);
-
-    Livewire::test(ApplicationHeading::class, ['application' => $this->application])
-        ->call('stop')
-        ->assertDispatched('error');
-});
-
-test('member cannot call force deploy on application heading', function () {
-    $this->actingAs($this->member);
-    session(['currentTeam' => $this->team]);
-
-    Livewire::test(ApplicationHeading::class, ['application' => $this->application])
-        ->call('force_deploy_without_cache')
-        ->assertDispatched('error');
-});
+// Avail: members may deploy, restart and stop (see AvailMemberDeployTest); config stays admin-only.
 
 // --- Application General policy (Livewire mount requires full app data) ---
 
@@ -301,14 +267,7 @@ test('member cannot save rollback settings', function () {
         ->assertDispatched('error');
 });
 
-test('member cannot rollback image', function () {
-    $this->actingAs($this->member);
-    session(['currentTeam' => $this->team]);
-
-    Livewire::test(ApplicationRollback::class, ['application' => $this->application])
-        ->call('rollbackImage', 'test-image:latest')
-        ->assertForbidden();
-});
+// Avail: rolling back is a deploy action, which members may do.
 
 // --- Application Heading visibility ---
 

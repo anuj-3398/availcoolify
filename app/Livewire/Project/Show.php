@@ -91,7 +91,7 @@ class Show extends Component
     public function render(): View
     {
         $canUpdateProject = auth()->user()->can('update', $this->project);
-        $canCreateResource = auth()->user()->can('createAnyResource');
+        $canCreateResource = auth()->user()->can('createApplication');
 
         return view('livewire.project.show', [
             'environmentsJs' => $this->project->environments->map(function (Environment $environment) use ($canCreateResource, $canUpdateProject): array {

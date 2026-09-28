@@ -58,15 +58,23 @@ it('denies view when application has no team', function () {
 
 it('allows admin to create an application', function () {
     $user = Mockery::mock(User::class)->makePartial();
-    $user->shouldReceive('isAdmin')->andReturn(true);
+    $user->shouldReceive('role')->andReturn('admin');
 
     $policy = new ApplicationPolicy;
     expect($policy->create($user))->toBeTrue();
 });
 
-it('denies member to create an application', function () {
+it('allows member to create an application', function () {
     $user = Mockery::mock(User::class)->makePartial();
-    $user->shouldReceive('isAdmin')->andReturn(false);
+    $user->shouldReceive('role')->andReturn('member');
+
+    $policy = new ApplicationPolicy;
+    expect($policy->create($user))->toBeTrue();
+});
+
+it('denies a user without a team to create an application', function () {
+    $user = Mockery::mock(User::class)->makePartial();
+    $user->shouldReceive('role')->andReturn(null);
 
     $policy = new ApplicationPolicy;
     expect($policy->create($user))->toBeFalse();
@@ -136,9 +144,9 @@ it('denies delete when application has no team', function () {
     expect($policy->delete($user, $application))->toBeFalse();
 });
 
-it('allows team admin to deploy their own team application', function () {
-    $user = Mockery::mock(User::class)->makePartial();
-    $user->shouldReceive('isAdminOfTeam')->with(1)->andReturn(true);
+it('allows team member to deploy their own team application', function () {
+    $user = new User;
+    $user->setRelation('teams', collect([(object) ['id' => 1]]));
 
     $application = Mockery::mock(Application::class)->makePartial();
     $application->shouldReceive('team')->andReturn((object) ['id' => 1]);
@@ -147,9 +155,9 @@ it('allows team admin to deploy their own team application', function () {
     expect($policy->deploy($user, $application))->toBeTrue();
 });
 
-it('denies team member to deploy their own team application', function () {
-    $user = Mockery::mock(User::class)->makePartial();
-    $user->shouldReceive('isAdminOfTeam')->with(1)->andReturn(false);
+it('denies deploy to a user outside the application team', function () {
+    $user = new User;
+    $user->setRelation('teams', collect([(object) ['id' => 2]]));
 
     $application = Mockery::mock(Application::class)->makePartial();
     $application->shouldReceive('team')->andReturn((object) ['id' => 1]);
