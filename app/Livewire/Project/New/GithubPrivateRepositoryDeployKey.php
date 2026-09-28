@@ -126,6 +126,7 @@ class GithubPrivateRepositoryDeployKey extends Component
     public function setPrivateKey($private_key_id)
     {
         $this->authorize('create', Application::class);
+        $this->authorize('createAnyResource');
 
         $privateKey = PrivateKey::ownedByCurrentTeam()->findOrFail($private_key_id);
         $this->private_key_id = $privateKey->id;
@@ -135,6 +136,7 @@ class GithubPrivateRepositoryDeployKey extends Component
     public function submit()
     {
         $this->authorize('create', Application::class);
+        $this->authorize('createAnyResource');
 
         $privateKey = PrivateKey::ownedByCurrentTeam()->findOrFail($this->private_key_id);
 

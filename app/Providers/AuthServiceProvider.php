@@ -149,6 +149,8 @@ class AuthServiceProvider extends ServiceProvider
     {
         // Register gates for resource creation policy
         Gate::define('createAnyResource', [ResourceCreatePolicy::class, 'createAny']);
+        // Avail: members may open "New resource" to create applications only.
+        Gate::define('createApplication', fn ($user) => $user->can('create', \App\Models\Application::class));
 
         // Register gate for terminal access
         Gate::define('canAccessTerminal', function ($user) {

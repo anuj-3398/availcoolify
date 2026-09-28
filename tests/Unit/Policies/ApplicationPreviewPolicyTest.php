@@ -162,9 +162,9 @@ it('denies deleting application preview with null application', function () {
     expect($policy->delete($user, $preview))->toBeFalse();
 });
 
-it('allows team admin to deploy application preview', function () {
-    $user = Mockery::mock(User::class)->makePartial();
-    $user->shouldReceive('isAdminOfTeam')->with(1)->andReturn(true);
+it('allows team member to deploy application preview', function () {
+    $user = new User;
+    $user->setRelation('teams', collect([(object) ['id' => 1]]));
 
     $team = (object) ['id' => 1];
     $application = Mockery::mock(Application::class)->makePartial();
@@ -177,9 +177,9 @@ it('allows team admin to deploy application preview', function () {
     expect($policy->deploy($user, $preview))->toBeTrue();
 });
 
-it('denies team member from deploying application preview', function () {
-    $user = Mockery::mock(User::class)->makePartial();
-    $user->shouldReceive('isAdminOfTeam')->with(1)->andReturn(false);
+it('denies a user outside the team from deploying application preview', function () {
+    $user = new User;
+    $user->setRelation('teams', collect([(object) ['id' => 2]]));
 
     $team = (object) ['id' => 1];
     $application = Mockery::mock(Application::class)->makePartial();

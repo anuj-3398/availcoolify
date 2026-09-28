@@ -85,7 +85,8 @@ class ApplicationPreviewPolicy
     {
         $teamId = $this->getTeamId($applicationPreview);
 
-        return $teamId !== null && $user->isAdminOfTeam($teamId);
+        // Avail: every team member may deploy previews.
+        return $teamId !== null && $user->teams->contains('id', $teamId);
     }
 
     /**
