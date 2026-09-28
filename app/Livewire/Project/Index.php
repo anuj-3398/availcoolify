@@ -63,7 +63,7 @@ class Index extends Component
                     'settingsHref' => auth()->user()->can('update', $project)
                         ? route('project.edit', ['project_uuid' => $project->uuid])
                         : null,
-                    'addResourceHref' => $firstEnvironment && auth()->user()->can('createAnyResource')
+                    'addResourceHref' => $firstEnvironment && auth()->user()->can('createApplication')
                         ? route('project.resource.create', [
                             'project_uuid' => $project->uuid,
                             'environment_uuid' => $firstEnvironment->uuid,

@@ -17,9 +17,12 @@ class Create extends Component
 
     public function mount()
     {
-        $this->authorize('createAnyResource');
+        $this->authorize('createApplication');
 
         $type = str(request()->query('type'));
+        if (! availCanCreateResourceType($type->value())) {
+            abort(403, 'Only admins can create this type of resource.');
+        }
         $destination_uuid = request()->query('destination');
         $database_image = request()->query('database_image');
 

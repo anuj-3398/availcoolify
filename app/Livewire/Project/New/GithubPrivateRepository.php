@@ -104,6 +104,10 @@ class GithubPrivateRepository extends Component
             $this->canAddGithubAccounts = (bool) auth()->user()?->isAdmin();
             $this->loadGithubAccounts();
         }
+        // Avail: team-wide GitHub sources give access to every repo in them, so they are admin-only.
+        if (! auth()->user()?->can('createAnyResource')) {
+            $this->github_apps = collect();
+        }
     }
 
     public function loadGithubAccounts(): void
@@ -175,6 +179,7 @@ class GithubPrivateRepository extends Component
             ->where('is_public', false)
             ->whereNotNull('app_id')
             ->findOrFail($github_app_id);
+        $this->ensureMemberUsesGithubConnect();
         $token = generateGithubInstallationToken($this->github_app);
         $repositories = loadRepositoryByPage($this->github_app, $token, $this->page);
         $this->total_repositories_count = $repositories['total_count'];
@@ -240,6 +245,16 @@ class GithubPrivateRepository extends Component
         $this->branches = $this->branches->concat(collect($json));
     }
 
+    /**
+     * Avail: members may only import through their own GitHub connection (repos they can push to).
+     */
+    private function ensureMemberUsesGithubConnect(): void
+    {
+        if (! auth()->user()?->can('createAnyResource') && ! GithubConnect::isPlatformSource($this->github_app)) {
+            abort(403, 'Use "Continue with GitHub" to import repositories you can push to.');
+        }
+    }
+
     public function submit()
     {
         try {
@@ -261,6 +276,8 @@ class GithubPrivateRepository extends Component
             if ($validator->fails()) {
                 throw new \RuntimeException('Invalid repository data: '.$validator->errors()->first());
             }
+
+            $this->ensureMemberUsesGithubConnect();
 
             // Avail: re-check write access server-side; the picker list alone is not trusted.
             if (GithubConnect::isPlatformSource($this->github_app)
