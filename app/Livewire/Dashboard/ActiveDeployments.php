@@ -51,11 +51,18 @@ class ActiveDeployments extends Component
             ->limit(5)
             ->get($columns);
 
-        $this->recentDeployments = (clone $baseQuery)
+        // Avail: only the latest completed deployment of each application.
+        $latestPerApplication = ApplicationDeploymentQueue::query()
+            ->whereIn('server_id', $serverIds)
             ->whereNotIn('status', [
                 ApplicationDeploymentStatus::IN_PROGRESS->value,
                 ApplicationDeploymentStatus::QUEUED->value,
             ])
+            ->selectRaw('max(id)')
+            ->groupBy('application_id');
+
+        $this->recentDeployments = (clone $baseQuery)
+            ->whereIn('id', $latestPerApplication)
             ->orderByDesc('id')
             ->limit(5)
             ->get($columns);
