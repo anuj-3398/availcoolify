@@ -8,6 +8,8 @@ use Livewire\Component;
 
 class Create extends Component
 {
+    use \Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+
     public string $name = '';
 
     public ?string $description = null;
@@ -28,6 +30,7 @@ class Create extends Component
     public function submit()
     {
         try {
+            $this->authorize('create', Team::class);
             $this->validate();
             $team = Team::create([
                 'name' => $this->name,

@@ -13,7 +13,10 @@ class DecideWhatToDoWithUser
     public function handle(Request $request, Closure $next): Response
     {
         if (auth()?->user()?->teams?->count() === 0) {
-            $currentTeam = auth()->user()?->recreate_personal_team();
+            // Avail: no personal teams; join the root team (when Clerk auto-join is on).
+            $currentTeam = availJoinRootTeam(auth()->user())
+                ? \App\Models\Team::find(0)
+                : auth()->user()?->recreate_personal_team();
             refreshSession($currentTeam);
         }
         if (auth()?->user()?->currentTeam()) {

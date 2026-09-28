@@ -27,6 +27,7 @@
                     <span class="min-w-0 flex-1 truncate">{{ $team->name }}</span>
                 </button>
             @endforeach
+            @can('create', App\Models\Team::class)
             <div class="mt-1 border-t border-neutral-200 pt-1 dark:border-white/[0.08]">
                 <x-modal-input title="New Team">
                     <x-slot:content>
@@ -38,6 +39,7 @@
                     <livewire:team.create :key="'team-switcher-create-expanded'" />
                 </x-modal-input>
             </div>
+            @endcan
         </div>
     </div>
 
@@ -71,6 +73,7 @@
                     <span class="min-w-0 flex-1 truncate">{{ $team->name }}</span>
                 </button>
             @endforeach
+            @can('create', App\Models\Team::class)
             <div class="mt-1 border-t border-neutral-200 pt-1 dark:border-white/[0.08]">
                 <x-modal-input title="New Team">
                     <x-slot:content>
@@ -82,6 +85,7 @@
                     <livewire:team.create :key="'team-switcher-create-collapsed'" />
                 </x-modal-input>
             </div>
+            @endcan
         </div>
     </div>
 </div>
