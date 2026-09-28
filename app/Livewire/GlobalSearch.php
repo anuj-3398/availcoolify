@@ -959,7 +959,7 @@ class GlobalSearch extends Component
             ]);
         }
 
-        // Team - Avail: only when team creation is allowed (it is off: one Avail Team)
+        // Team - Avail: only the Avail Team owner may create teams
         if ($user->can('create', \App\Models\Team::class)) {
             $items->push([
                 'name' => 'Team',

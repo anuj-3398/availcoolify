@@ -55,11 +55,18 @@ test('without auto-join nobody is added to the root team', function () {
     expect($existing->teams()->whereKey(0)->exists())->toBeFalse();
 });
 
-test('nobody can create additional teams', function () {
-    $user = User::factory()->create();
+test('only the Avail Team owner can create teams', function () {
+    $admin = User::factory()->create();
+    $admin->teams()->attach(0, ['role' => 'admin']);
+    $member = User::factory()->create();
+    $member->teams()->attach(0, ['role' => 'member']);
+    if (! $this->owner->teams()->whereKey(0)->exists()) {
+        $this->owner->teams()->attach(0, ['role' => 'owner']);
+    }
 
-    expect($user->can('create', Team::class))->toBeFalse()
-        ->and($this->owner->can('create', Team::class))->toBeFalse();
+    expect($this->owner->fresh()->can('create', Team::class))->toBeTrue()
+        ->and($admin->fresh()->can('create', Team::class))->toBeFalse()
+        ->and($member->fresh()->can('create', Team::class))->toBeFalse();
 });
 
 test('a signed-in user left without a team joins the root team instead of a new personal team', function () {
