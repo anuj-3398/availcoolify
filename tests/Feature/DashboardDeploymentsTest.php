@@ -39,6 +39,17 @@ beforeEach(function () {
     ]);
 });
 
+function createDashboardApplication(string $name): Application
+{
+    return Application::factory()->create([
+        'environment_id' => test()->environment->id,
+        'destination_id' => test()->destination->id,
+        'destination_type' => test()->destination->getMorphClass(),
+        'name' => $name,
+        'status' => 'running',
+    ]);
+}
+
 function createDashboardDeployment(array $overrides = []): ApplicationDeploymentQueue
 {
     return ApplicationDeploymentQueue::create(array_merge([
@@ -103,7 +114,9 @@ it('shows up to five active deployments above recent ones', function () {
     }
 
     foreach (range(1, 6) as $index) {
+        $application = createDashboardApplication("Recent App {$index}");
         createDashboardDeployment([
+            'application_id' => $application->id,
             'application_name' => "Recent App {$index}",
             'status' => ApplicationDeploymentStatus::FINISHED->value,
         ]);
@@ -133,6 +146,7 @@ it('does not include active deployments in the recent list', function () {
         'status' => ApplicationDeploymentStatus::FINISHED->value,
     ]);
     createDashboardDeployment([
+        'application_id' => createDashboardApplication('Failed Earlier')->id,
         'application_name' => 'Failed Earlier',
         'status' => ApplicationDeploymentStatus::FAILED->value,
     ]);
