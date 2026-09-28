@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\GithubConnect\GithubConnect;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
 /**
@@ -30,19 +31,25 @@ class GithubConnectController extends Controller
     }
 
     /**
-     * Install the platform app on another GitHub account or organisation. GitHub passes our state
-     * back to the callback, so the return trip is verified like a normal connect.
+     * Install the platform app on a GitHub account or organisation. Anyone who can create
+     * applications may start it; GitHub itself decides which accounts they may install on.
+     * GitHub passes our state back to the callback, so the return trip is verified like a connect.
      */
     public function install(Request $request): RedirectResponse
     {
         if (! GithubConnect::isEnabled()) {
             return redirect()->route('dashboard')->with('error', 'GitHub connect is not set up yet.');
         }
-        abort_unless($request->user()->isAdmin(), 403, 'Only team admins can add GitHub accounts or organisations.');
+        abort_unless(Gate::allows('createApplication'), 403, 'You do not have permission to add GitHub accounts.');
 
+        return $this->redirectToInstall($request, $this->safeReturnPath($request->query('return')));
+    }
+
+    private function redirectToInstall(Request $request, string $return): RedirectResponse
+    {
         $state = Str::random(40);
         $request->session()->put(self::SESSION_STATE, $state);
-        $request->session()->put(self::SESSION_RETURN, $this->safeReturnPath($request->query('return')));
+        $request->session()->put(self::SESSION_RETURN, $return);
 
         return redirect()->away(GithubConnect::installUrl().'?'.http_build_query(['state' => $state]));
     }
@@ -77,6 +84,19 @@ class GithubConnectController extends Controller
             $connection = GithubConnect::connectWithCode($request->user(), $code);
         } catch (\Throwable $e) {
             return redirect($return)->with('error', $e->getMessage());
+        }
+
+        // First connect and the app isn't on any account this user can reach yet: go straight on to
+        // installing it (their own account, or an org they own). Not after an install, to avoid loops.
+        if (! $request->filled('installation_id') && Gate::allows('createApplication')) {
+            try {
+                $hasInstallations = GithubConnect::installations($request->user())->isNotEmpty();
+            } catch (\Throwable) {
+                $hasInstallations = true;
+            }
+            if (! $hasInstallations) {
+                return $this->redirectToInstall($request, $return);
+            }
         }
 
         return redirect($return)->with('success', "GitHub connected as @{$connection->github_login}.");
