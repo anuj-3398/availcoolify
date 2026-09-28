@@ -28,10 +28,11 @@ it('allows any authenticated user to view any teams list', function () {
     expect((new TeamPolicy)->viewAny($user))->toBeTrue();
 });
 
-it('allows authenticated users to create teams', function () {
+it('does not allow creating additional teams', function () {
     $user = Mockery::mock(User::class)->makePartial();
 
-    expect((new TeamPolicy)->create($user))->toBeTrue();
+    // Avail: everyone works in the one Avail Team.
+    expect((new TeamPolicy)->create($user))->toBeFalse();
 });
 
 it('allows target team members to view the team', function () {
