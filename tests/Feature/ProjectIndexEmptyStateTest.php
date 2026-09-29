@@ -28,7 +28,7 @@ it('shows an empty state when there are no projects', function () {
     Livewire::test(Index::class)
         ->assertSee('No projects yet')
         ->assertSee('Create a project to organize your environments and resources.')
-        ->assertSee('Open onboarding');
+        ->assertDontSee('Open onboarding');
 });
 
 it('does not show the empty state when projects exist', function () {
