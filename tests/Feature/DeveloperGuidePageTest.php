@@ -29,3 +29,13 @@ test('account menu links to the developer guide', function () {
         ->toContain("route('developer-guide')")
         ->toContain('Developer Guide');
 });
+
+test('every image in the developer guide exists', function () {
+    $markdown = file_get_contents(resource_path('views/docs/developer-guide.md'));
+    preg_match_all('/!\[[^\]]*\]\((\/images\/developer-guide\/[^)]+)\)/', $markdown, $matches);
+
+    expect($matches[1])->not->toBeEmpty();
+    foreach ($matches[1] as $path) {
+        expect(file_exists(public_path(ltrim($path, '/'))))->toBeTrue($path);
+    }
+});

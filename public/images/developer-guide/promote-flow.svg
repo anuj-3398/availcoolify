@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 210" width="760" height="210" role="img" aria-labelledby="t d">
+  <title id="t">Promoting an app from staging to production</title>
+  <desc id="d">Test the app in a protected staging environment, clone it to production, set the production domain and variables and deploy, then delete the staging copy.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#8b8b93" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <rect width="760" height="210" rx="14" fill="#161618"/>
+  <g font-family="Inter, system-ui, sans-serif">
+    <rect x="24" y="40" width="160" height="72" rx="8" fill="#2a2140" stroke="#8b5cf6"/>
+    <text x="104" y="68" font-size="14" font-weight="600" fill="#e5e7eb" text-anchor="middle">Test in staging</text>
+    <text x="104" y="90" font-size="12" fill="#9ca3af" text-anchor="middle">Clerk login required</text>
+    <line x1="184" y1="76" x2="210" y2="76" stroke="#8b8b93" stroke-width="1.6" marker-end="url(#a)"/>
+    <rect x="214" y="40" width="160" height="72" rx="8" fill="#1f2a37" stroke="#3b82f6"/>
+    <text x="294" y="68" font-size="14" font-weight="600" fill="#e5e7eb" text-anchor="middle">Clone</text>
+    <text x="294" y="90" font-size="12" fill="#9ca3af" text-anchor="middle">to production</text>
+    <line x1="374" y1="76" x2="400" y2="76" stroke="#8b8b93" stroke-width="1.6" marker-end="url(#a)"/>
+    <rect x="404" y="40" width="160" height="72" rx="8" fill="#1f2a37" stroke="#3b82f6"/>
+    <text x="484" y="68" font-size="14" font-weight="600" fill="#e5e7eb" text-anchor="middle">Domain + env vars</text>
+    <text x="484" y="90" font-size="12" fill="#9ca3af" text-anchor="middle">then Deploy</text>
+    <line x1="564" y1="76" x2="590" y2="76" stroke="#8b8b93" stroke-width="1.6" marker-end="url(#a)"/>
+    <rect x="594" y="40" width="142" height="72" rx="8" fill="#0f2e26" stroke="#10b981"/>
+    <text x="665" y="68" font-size="14" font-weight="600" fill="#e5e7eb" text-anchor="middle">Delete staging</text>
+    <text x="665" y="90" font-size="12" fill="#9ca3af" text-anchor="middle">once prod works</text>
+    <text x="380" y="152" font-size="12" fill="#9ca3af" text-anchor="middle">Clone copies settings and variables with their staging values.</text>
+    <text x="380" y="174" font-size="12" fill="#9ca3af" text-anchor="middle">Change the domain before deploying, or both apps claim the same URL.</text>
+  </g>
+</svg>
