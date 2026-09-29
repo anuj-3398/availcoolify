@@ -13,6 +13,15 @@ class TeamInvitation extends Model
         'role',
         'link',
         'via',
+        'avail_project_ids',
+        'avail_access_days',
+        'avail_access_until',
+    ];
+
+    protected $casts = [
+        'avail_project_ids' => 'array',
+        'avail_access_days' => 'integer',
+        'avail_access_until' => 'date',
     ];
 
     /**

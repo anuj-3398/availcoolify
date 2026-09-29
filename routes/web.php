@@ -185,6 +185,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/settings/email', SettingsEmail::class)->name('settings.email');
     Route::get('/settings/oauth', SettingsOauth::class)->name('settings.oauth');
     Route::get('/settings/access-protection', SettingsAccessProtection::class)->name('settings.access-protection');
+    Route::get('/settings/guest-access', \App\Livewire\Settings\GuestAccess::class)->name('settings.guest-access');
     Route::get('/settings/oauth/{provider}', SettingsOauth::class)
         ->where('provider', '[A-Za-z0-9_-]+')
         ->name('settings.oauth.provider');

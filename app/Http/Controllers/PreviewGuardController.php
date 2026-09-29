@@ -169,8 +169,23 @@ class PreviewGuardController extends Controller
         }
 
         // Short cache so removing someone from the team revokes access within seconds.
-        return Cache::remember("preview-guard:member:{$teamId}:{$userId}", 30, function () use ($teamId, $userId) {
-            return DB::table('team_user')->where('team_id', $teamId)->where('user_id', $userId)->exists();
+        $projectId = (int) data_get($application, 'environment.project_id');
+
+        return Cache::remember("preview-guard:member:{$teamId}:{$userId}:{$projectId}", 30, function () use ($teamId, $userId, $projectId) {
+            $membership = DB::table('team_user')->where('team_id', $teamId)->where('user_id', $userId)->first();
+            if (! $membership) {
+                return false;
+            }
+            // Avail: guests get in only for the projects ticked for them, until their access ends.
+            if ($membership->role === 'guest') {
+                if ($membership->guest_expires_at !== null && now()->greaterThanOrEqualTo($membership->guest_expires_at)) {
+                    return false;
+                }
+
+                return DB::table('project_guest_access')->where('project_id', $projectId)->where('user_id', $userId)->exists();
+            }
+
+            return true;
         });
     }
 

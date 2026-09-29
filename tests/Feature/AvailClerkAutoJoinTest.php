@@ -13,6 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
+    config(['avail.auto_join_domains' => 'avail.test']);
     InstanceSettings::unguarded(fn () => InstanceSettings::updateOrCreate(['id' => 0], ['id' => 0, 'is_registration_enabled' => true]));
     $this->owner = User::factory()->create(['id' => 0, 'email' => 'owner@avail.test']);
     $this->rootTeam = Team::find(0) ?? Team::unguarded(fn () => Team::create(['id' => 0, 'name' => 'Avail Team', 'personal_team' => true]));
@@ -70,7 +71,7 @@ test('only the Avail Team owner can create teams', function () {
 });
 
 test('a signed-in user left without a team joins the root team instead of a new personal team', function () {
-    $user = User::factory()->create();
+    $user = User::factory()->create(['email' => 'teamless@avail.test']);
     $user->teams()->detach();
     $teamsBefore = Team::count();
 

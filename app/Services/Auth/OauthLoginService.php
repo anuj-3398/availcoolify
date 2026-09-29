@@ -37,11 +37,9 @@ class OauthLoginService
         // Choose the team like the password login: restore the last active team,
         // or the sole team. A multi-team user without a valid stored choice gets
         // no session team, so DecideWhatToDoWithUser shows the team selection.
+        // Avail: no personal-team fallback. A user without a team waits for an invitation.
         $user->unsetRelation('teams');
         $team = $user->resolveStoredTeam();
-        if (! $team && $user->teams->isEmpty()) {
-            $team = $user->recreate_personal_team();
-        }
         if ($team) {
             session(['currentTeam' => $team]);
         } else {
@@ -309,7 +307,11 @@ class OauthLoginService
         }
 
         if ($oauthSetting->auto_join_root_team) {
-            return $this->createRootTeamOnlyUser($name, $email);
+            // Avail: company emails join the root team; anyone else gets an account without a
+            // team and waits for an invitation.
+            return availEmailAutoJoins($email)
+                ? $this->createRootTeamOnlyUser($name, $email)
+                : $this->createTeamlessUser($name, $email);
         }
 
         return User::create([
@@ -337,5 +339,14 @@ class OauthLoginService
 
             return $user;
         });
+    }
+
+    private function createTeamlessUser(string $name, string $email): User
+    {
+        return User::withoutEvents(fn () => User::create([
+            'name' => $name,
+            'email' => $email,
+            'password' => Hash::make(Str::random(64)),
+        ]));
     }
 }
