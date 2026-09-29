@@ -74,7 +74,7 @@ class GuestAccess extends Component
             ->whereIn('users.id', $this->teamGuests()->pluck('id'))
             ->orderBy('email')
             ->get();
-        $grantedBy = User::whereIn('id', $guestsWithAccess->pluck('pivot.granted_by_user_id')->filter())->pluck('email', 'id');
+        $grantedBy = User::whereIn('id', $guestsWithAccess->pluck('pivot.granted_by_user_id')->reject(fn ($id) => $id === null))->pluck('email', 'id');
 
         return view('livewire.project.guest-access', [
             'guestsWithAccess' => $guestsWithAccess,
