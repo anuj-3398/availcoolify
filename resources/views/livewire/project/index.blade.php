@@ -23,16 +23,10 @@
         </header>
 
         @if ($projects->isEmpty())
+            {{-- Avail: no "Open onboarding" link; onboarding is not used here. --}}
             <x-empty title="No projects yet"
                 description="Create a project to organize your environments and resources."
-                icon-name="projects">
-                <x-slot:contents>
-                    <a class="text-[12px] font-medium text-coollabs hover:underline dark:text-warning"
-                        href="{{ route('onboarding') }}" {{ wireNavigate() }}>
-                        Open onboarding
-                    </a>
-                </x-slot:contents>
-            </x-empty>
+                icon-name="projects" />
         @else
             <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="relative w-full sm:max-w-sm">
