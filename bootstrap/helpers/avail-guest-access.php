@@ -182,6 +182,20 @@ function availGuestGateDecision(User $user, string $ability, array $arguments): 
 }
 
 /**
+ * Text under "No projects yet": only admins can create projects, so others are told who to ask.
+ */
+function availEmptyProjectsMessage(string $forCreators): string
+{
+    if (auth()->user()?->can('create', Project::class)) {
+        return $forCreators;
+    }
+
+    return availIsGuest()
+        ? 'No projects have been shared with you yet. Ask an admin for access.'
+        : 'Ask an admin to create one.';
+}
+
+/**
  * Pages a guest may open. Everything else behind a login sends them to the dashboard.
  *
  * @return list<string>
