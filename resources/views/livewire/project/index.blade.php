@@ -24,8 +24,7 @@
 
         @if ($projects->isEmpty())
             {{-- Avail: no "Open onboarding" link; onboarding is not used here. --}}
-            <x-empty title="No projects yet"
-                description="Create a project to organize your environments and resources."
+            <x-empty title="No projects yet" :description="availEmptyProjectsMessage('Create a project to organize your environments and resources.')"
                 icon-name="projects" />
         @else
             <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
