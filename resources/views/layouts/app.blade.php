@@ -71,7 +71,7 @@
                             <span x-show="!collapsed" class="text-[15px] font-semibold tracking-tight text-black dark:text-white">AvailCoolify</span>
                         </a>
                     </div>
-                    @if (isInstanceAdmin() && !isCloud())
+                    @if (availIsPlatformOwner() && !isCloud())
                         <div x-show="!collapsed" class="ml-auto shrink-0">
                             @persist('upgrade')
                                 <livewire:upgrade />
@@ -162,7 +162,7 @@
                         class="hidden shrink-0 items-center"></div>
                     <div id="configuration-warning-hud-slot-mobile" class="relative shrink-0"></div>
                     <livewire:deployments-indicator variant="mobile" />
-                    @if (isInstanceAdmin() && !isCloud())
+                    @if (availIsPlatformOwner() && !isCloud())
                         <livewire:upgrade key="mobile-upgrade" />
                     @endif
                     <x-top-user-menu />

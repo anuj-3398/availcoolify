@@ -65,7 +65,8 @@ class Upgrade extends Component
     public function upgrade()
     {
         try {
-            if (! isInstanceAdmin()) {
+            // Avail: only the Avail Team owner may start an upgrade.
+            if (! availIsPlatformOwner()) {
                 abort(403);
             }
             if ($this->updateInProgress) {

@@ -2,7 +2,7 @@ AvailCoolify is our self-hosted deploy platform, a customised Coolify. Push to G
 
 - **Dashboard:** [coolify.avail.tools](https://coolify.avail.tools)
 - **Sign-in:** Clerk only (the same Clerk account as HQ). There is no password login.
-- **Platform owner:** Anuj Agnihotri (anuj@availproject.org). Ask for access, new projects or anything broken.
+- **Owner:** the owner of Avail Team (see **Team → Members**) runs the platform. Ask the Owner for new projects, role changes or anything broken.
 
 ## Getting access
 
@@ -12,7 +12,7 @@ Sign in with Clerk and you're in: your account is created on first login and joi
 
 1. Open [coolify.avail.tools](https://coolify.avail.tools) and click **Login with Clerk**. You always get a fresh sign-in screen, so pick the right account.
 2. You land on the dashboard of **Avail Team**: projects first, then recent deployments (the latest one per app).
-3. Need more than a member can do? Ask Anuj or an admin to change your role under **Team → Members**.
+3. Need more than a member can do? Ask the Owner or an admin to change your role under **Team → Members**.
 
 ![Dashboard with projects and recent deployments](/images/developer-guide/dashboard.jpg)
 
@@ -20,7 +20,7 @@ Sign in with Clerk and you're in: your account is created on first login and joi
 | --- | --- |
 | Member | View everything; create apps (public repo, your own GitHub repos, Dockerfile, image); deploy, redeploy, restart, stop and roll back apps; delete apps you created |
 | Admin | Everything a member can, plus app settings, env vars, web terminal, databases, services, projects and environments, and managing team members |
-| Owner | Everything an admin can, plus creating teams |
+| Owner | Everything an admin can, plus creating teams and upgrading the platform |
 
 Projects and environments are created by admins. Two-factor is handled by Clerk, not in the profile.
 
@@ -135,9 +135,8 @@ Start with the deployment log for build problems and **Runtime Logs** for proble
 
 ## Rules and gotchas
 
-The platform itself is managed by Anuj; developers manage their own apps.
+The platform itself is managed by the Owner; developers manage their own apps.
 
-- **Never click Upgrade** if an upgrade banner appears. AvailCoolify runs a custom build; the official upgrade would overwrite it. Upgrades are done by Anuj.
 - **Security and domain changes need a redeploy** to reach the running app (access protection, domains, ports, labels).
 - **Everything runs on one server** (8 GB RAM) shared by builds and all apps. Avoid parallel heavy builds, and ask before adding memory-hungry services.
 - **Backups aren't set up yet.** Don't keep data you can't lose in app databases on this platform for now.
