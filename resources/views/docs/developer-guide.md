@@ -18,7 +18,7 @@ Sign in with Clerk and you're in: your account is created on first login and joi
 
 | Role | Can do |
 | --- | --- |
-| Member | View everything; create apps (public repo, your own GitHub repos, Dockerfile, image); deploy, redeploy, restart, stop and roll back apps; delete apps you created |
+| Member | View apps, deployments and build logs; create apps (public repo, your own GitHub repos, Dockerfile, image); deploy, redeploy, restart, stop and roll back apps; runtime logs and delete for apps you created |
 | Admin | Everything a member can, plus app settings, env vars, web terminal, databases, services, projects and environments, and managing team members |
 | Owner | Everything an admin can, plus creating teams and upgrading the platform |
 
@@ -119,7 +119,7 @@ Set variables per app under **app → Environment Variables**; they apply on the
 Start with the deployment log for build problems and **Runtime Logs** for problems while the app runs.
 
 - **Deployment log:** app → **Deployment Logs** → pick the run.
-- **Runtime logs:** app → **Runtime Logs**. Live stdout/stderr of the running app.
+- **Runtime logs:** app → **Runtime Logs**. Live stdout/stderr of the running app. They can contain secrets, so members only see them for apps they created; admins see all.
 - **Web terminal:** app → **Terminal** opens a shell inside the container (Admin role).
 
 | Symptom | Likely cause | Fix |
