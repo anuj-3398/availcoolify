@@ -347,6 +347,23 @@ test('expiry emails wait for email to be configured, then go out once', function
     Notification::assertSentToTimes($this->guest, AvailGuestAccessNotice::class, 2);
 });
 
+test('the empty projects page tells guests and members who to ask', function () {
+    Project::query()->delete();
+
+    guestActAs($this->guest);
+    Livewire::test(\App\Livewire\Project\Index::class)
+        ->assertSee('No projects have been shared with you yet. Ask an admin for access.')
+        ->assertDontSee('Create a project');
+
+    $member = User::factory()->create(['email' => 'member@avail.test']);
+    $member->teams()->attach(0, ['role' => 'member']);
+    guestActAs($member);
+    Livewire::test(\App\Livewire\Project\Index::class)->assertSee('Ask an admin to create one.');
+
+    guestActAs($this->admin);
+    Livewire::test(\App\Livewire\Project\Index::class)->assertSee('Create a project to organize your environments and resources.');
+});
+
 test('making a member a guest gives the default 30 days and no projects', function () {
     $member = User::factory()->create(['email' => 'contractor@elsewhere.test']);
     $member->teams()->attach(0, ['role' => 'member']);
