@@ -99,7 +99,7 @@ class StandaloneSqlite extends BaseModel
      */
     public static function ownedByCurrentTeam()
     {
-        return StandaloneSqlite::whereRelation('environment.project.team', 'id', currentTeam()->id)->orderBy('name');
+        return availGuestScope(StandaloneSqlite::whereRelation('environment.project.team', 'id', currentTeam()->id))->orderBy('name');
     }
 
     /**

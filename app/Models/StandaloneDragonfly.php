@@ -115,7 +115,7 @@ class StandaloneDragonfly extends BaseModel
      */
     public static function ownedByCurrentTeam()
     {
-        return StandaloneDragonfly::whereRelation('environment.project.team', 'id', currentTeam()->id)->orderBy('name');
+        return availGuestScope(StandaloneDragonfly::whereRelation('environment.project.team', 'id', currentTeam()->id))->orderBy('name');
     }
 
     /**

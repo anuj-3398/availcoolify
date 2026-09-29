@@ -15,6 +15,24 @@
                     <dt class="text-neutral-500 dark:text-fg-dim">Role</dt>
                     <dd class="font-medium text-neutral-900 dark:text-white">{{ ucfirst($invitation->role) }}</dd>
                 </div>
+                @if ($invitation->role === 'guest')
+                    @php
+                        $guestProjects = \App\Models\Project::where('team_id', $team->id)
+                            ->whereIn('id', $invitation->avail_project_ids ?? [])
+                            ->orderBy('name')
+                            ->pluck('name');
+                    @endphp
+                    <div class="flex items-center justify-between gap-4 px-3 py-2.5">
+                        <dt class="text-neutral-500 dark:text-fg-dim">Projects</dt>
+                        <dd class="min-w-0 truncate text-right font-medium text-neutral-900 dark:text-white">
+                            {{ $guestProjects->isEmpty() ? 'None yet' : $guestProjects->join(', ') }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between gap-4 px-3 py-2.5">
+                        <dt class="text-neutral-500 dark:text-fg-dim">Access</dt>
+                        <dd class="font-medium text-neutral-900 dark:text-white">
+                            {{ availInvitationAccessLabel($invitation) }}</dd>
+                    </div>
+                @endif
             </dl>
 
             @if ($alreadyMember)

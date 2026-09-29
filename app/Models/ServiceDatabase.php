@@ -68,7 +68,7 @@ class ServiceDatabase extends BaseModel
      */
     public static function ownedByCurrentTeam()
     {
-        return ServiceDatabase::whereRelation('service.environment.project.team', 'id', currentTeam()->id)->orderBy('name');
+        return availGuestScope(ServiceDatabase::whereRelation('service.environment.project.team', 'id', currentTeam()->id), 'service.environment')->orderBy('name');
     }
 
     /**

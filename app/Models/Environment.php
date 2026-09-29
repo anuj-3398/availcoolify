@@ -45,7 +45,7 @@ class Environment extends BaseModel
 
     public static function ownedByCurrentTeam()
     {
-        return Environment::whereRelation('project.team', 'id', currentTeam()->id)->orderBy('name');
+        return availGuestScope(Environment::whereRelation('project.team', 'id', currentTeam()->id), 'project')->orderBy('name');
     }
 
     public static function ownedByCurrentTeamAPI(int $teamId)

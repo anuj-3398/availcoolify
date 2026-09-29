@@ -10,6 +10,7 @@
             ['label' => 'Email', 'route' => 'settings.email', 'icon' => 'mail'],
             ['label' => 'Authentication', 'route' => 'settings.oauth', 'icon' => 'keys'],
             ['label' => 'Access protection', 'route' => 'settings.access-protection', 'icon' => 'admin'],
+            ['label' => 'Guest access', 'route' => 'settings.guest-access', 'icon' => 'teams'],
         ],
     ];
 @endphp
