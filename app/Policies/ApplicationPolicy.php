@@ -64,10 +64,28 @@ class ApplicationPolicy
         }
 
         // Avail: members may delete applications they created themselves.
-        return $user->isAdminOfTeam($teamId)
-            || ($application->avail_created_by_user_id !== null
-                && (int) $application->avail_created_by_user_id === (int) $user->id
-                && $user->teams->contains('id', $teamId));
+        return $user->isAdminOfTeam($teamId) || $this->createdByTeamMember($user, $application, $teamId);
+    }
+
+    /**
+     * Avail: container (runtime) logs can contain secrets, so only users who can edit the
+     * application may read them, plus the member who created it.
+     */
+    public function readLogs(User $user, Application $application): bool
+    {
+        $teamId = $this->getTeamId($application);
+        if ($teamId === null) {
+            return false;
+        }
+
+        return $user->isAdminOfTeam($teamId) || $this->createdByTeamMember($user, $application, $teamId);
+    }
+
+    private function createdByTeamMember(User $user, Application $application, int $teamId): bool
+    {
+        return $application->avail_created_by_user_id !== null
+            && (int) $application->avail_created_by_user_id === (int) $user->id
+            && $user->teams->contains('id', $teamId);
     }
 
     /**

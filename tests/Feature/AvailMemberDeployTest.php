@@ -173,3 +173,17 @@ test('the New resource button is shown to members', function () {
         'environment_uuid' => $this->environment->uuid,
     ]))->assertOk()->assertSee('New resource');
 });
+
+test('members read runtime logs only of applications they created', function () {
+    $otherMember = User::factory()->create();
+    $otherMember->teams()->attach($this->team, ['role' => 'member']);
+
+    $own = memberTestApplication($this, $this->member->id);
+    $legacy = memberTestApplication($this, null);
+
+    expect($this->member->can('readLogs', $own))->toBeTrue()
+        ->and($otherMember->fresh()->can('readLogs', $own))->toBeFalse()
+        ->and($this->member->can('readLogs', $legacy))->toBeFalse()
+        ->and($this->admin->can('readLogs', $legacy))->toBeTrue()
+        ->and($this->admin->can('readLogs', $own))->toBeTrue();
+});
