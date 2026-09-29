@@ -8,10 +8,12 @@
             {{-- Exclude is_auto_update_enabled (instantSave) so the bar does not flash. --}}
             <x-unsaved-bar action="submit" targets="update_check_frequency,auto_update_frequency" />
 
-            <x-application.settings-section title="Update Coolify"
-                helper="Install the latest Coolify version manually when an update is available.">
-                <livewire:upgrade :full-button="true" key="settings-upgrade" />
-            </x-application.settings-section>
+            @if (availIsPlatformOwner())
+                <x-application.settings-section title="Update Coolify"
+                    helper="Install the latest Coolify version manually when an update is available.">
+                    <livewire:upgrade :full-button="true" key="settings-upgrade" />
+                </x-application.settings-section>
+            @endif
 
             <x-application.settings-section title="Update checks">
                 <x-slot:actions>
