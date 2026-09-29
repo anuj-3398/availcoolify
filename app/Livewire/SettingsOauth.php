@@ -17,6 +17,9 @@ class SettingsOauth extends Component
 
     public $oauth_settings_map;
 
+    /** Avail: sign-in providers shown in Settings → Authentication. */
+    private const AVAIL_PROVIDERS = ['clerk'];
+
     public ?string $selectedProvider = null;
 
     public bool $disable_registration_when_oauth_enabled = false;
@@ -28,7 +31,7 @@ class SettingsOauth extends Component
 
     private function validationRules(?string $provider = null): array
     {
-        $rules = OauthSetting::all()->reduce(function ($carry, $setting) use ($provider) {
+        $rules = OauthSetting::whereIn('provider', self::AVAIL_PROVIDERS)->get()->reduce(function ($carry, $setting) use ($provider) {
             if ($provider !== null && $setting->provider !== $provider) {
                 return $carry;
             }
@@ -66,7 +69,8 @@ class SettingsOauth extends Component
         $this->settings = instanceSettings();
         $this->selectedProvider = $provider;
         $this->disable_registration_when_oauth_enabled = (bool) $this->settings->disable_registration_when_oauth_enabled;
-        $this->oauth_settings_map = OauthSetting::all()
+        // Avail: Clerk is the only sign-in method, so only its settings are shown.
+        $this->oauth_settings_map = OauthSetting::whereIn('provider', self::AVAIL_PROVIDERS)->get()
             ->sortBy(fn (OauthSetting $setting): string => $setting->isOidc() ? '' : $setting->provider)
             ->reduce(function ($carry, $setting) {
                 $carry[$setting->provider] = $this->oauthSettingToArray($setting);
