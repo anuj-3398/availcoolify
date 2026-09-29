@@ -39,3 +39,9 @@ test('every image in the developer guide exists', function () {
         expect(file_exists(public_path(ltrim($path, '/'))))->toBeTrue($path);
     }
 });
+
+test('developer guide image urls carry a content version', function () {
+    $html = Livewire::test(DeveloperGuide::class)->html();
+
+    expect($html)->toMatch('#/images/developer-guide/login\.jpg\?v=[0-9a-f]{8}#');
+});
