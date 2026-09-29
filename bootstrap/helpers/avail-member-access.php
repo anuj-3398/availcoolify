@@ -46,3 +46,11 @@ function availJoinRootTeam(?\App\Models\User $user): bool
 
     return true;
 }
+
+/**
+ * Avail: the owner of the root team (Avail Team) runs the platform, e.g. upgrades.
+ */
+function availIsPlatformOwner(): bool
+{
+    return auth()->user()?->roleInTeam(0) === 'owner';
+}
