@@ -81,8 +81,10 @@ test('a push from an uninstalled installation does not deploy', function () {
 
     $project = Project::factory()->create(['team_id' => $team->id]);
     $environment = Environment::factory()->create(['project_id' => $project->id]);
-    $server = Server::factory()->create(['team_id' => $team->id, 'ip' => '10.20.30.40']);
-    $server->settings->update(['is_reachable' => true, 'is_usable' => true, 'force_disabled' => false]);
+    $server = Server::factory()->create(['team_id' => $team->id]);
+    // forceFill: don't depend on the mass-assignment state other tests leave behind.
+    $server->forceFill(['ip' => '10.20.30.40'])->save();
+    $server->settings->forceFill(['is_reachable' => true, 'is_usable' => true, 'force_disabled' => false])->save();
     $destination = $server->standaloneDockers()->firstOrFail();
     Application::create([
         'name' => 'org-app',
