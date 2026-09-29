@@ -7,6 +7,7 @@
                 [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-black dark:[&_h2]:text-white
                 [&_p]:my-3
                 [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1
+                [&_img]:my-4 [&_img]:w-full [&_img]:rounded-lg [&_img]:border [&_img]:border-neutral-200 dark:[&_img]:border-white/[0.08]
                 [&_strong]:font-semibold [&_strong]:text-black dark:[&_strong]:text-white
                 [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-black dark:hover:[&_a]:text-white
                 [&_code]:rounded [&_code]:bg-neutral-100 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[12px] dark:[&_code]:bg-white/[0.06]
