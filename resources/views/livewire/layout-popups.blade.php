@@ -240,7 +240,8 @@
             </div>
         </x-banner>
     @endif
-    @if (!currentTeam()->isAnyNotificationEnabled())
+    {{-- Avail: guests cannot open notification settings. --}}
+    @if (!currentTeam()->isAnyNotificationEnabled() && ! availIsGuest())
         <span x-show="popups.notification">
             <x-popup>
                 <x-slot:customActions>
