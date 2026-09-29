@@ -278,6 +278,11 @@ class GetLogs extends Component
      */
     private function canReadLogs(): bool
     {
+        // Avail: members may also read the logs of applications they created.
+        if ($this->resource instanceof Application) {
+            return auth()->user()?->can('readLogs', $this->resource) ?? false;
+        }
+
         return auth()->user()?->can('update', $this->resource ?? $this->server) ?? false;
     }
 
