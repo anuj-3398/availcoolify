@@ -16,7 +16,8 @@ class Dashboard extends Component
 
     public function mount()
     {
-        $this->servers = Server::ownedByCurrentTeamCached();
+        // Avail: guests don't see servers (nor their traffic analytics).
+        $this->servers = availIsGuest() ? collect() : Server::ownedByCurrentTeamCached();
         $this->projects = Project::ownedByCurrentTeam()
             ->with(['environments:id,uuid,name,project_id'])
             ->withCount([

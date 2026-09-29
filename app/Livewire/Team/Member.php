@@ -69,10 +69,37 @@ class Member extends Component
             }
             $teamId = currentTeam()->id;
             DB::transaction(function () use ($teamId): void {
-                $this->member->teams()->updateExistingPivot($teamId, ['role' => Role::MEMBER->value]);
+                $this->member->teams()->updateExistingPivot($teamId, ['role' => Role::MEMBER->value, 'guest_expires_at' => null]);
                 RevokeUserTeamTokens::forUserTeam($this->member, $teamId);
+                availRevokeGuestProjectsInTeam($this->member, $teamId);
             });
             $this->auditRoleUpdate($teamId, Role::MEMBER);
+            $this->dispatch('reloadWindow');
+        } catch (\Exception $e) {
+            $this->dispatch('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Avail: a guest sees only the projects ticked for them in Settings > Guest access,
+     * for the default access duration from now.
+     */
+    public function makeGuest()
+    {
+        try {
+            $this->authorize('manageMembers', currentTeam());
+
+            if (Role::from(auth()->user()->role())->lt(Role::ADMIN)
+                || Role::from($this->getMemberRole())->gt(auth()->user()->role())) {
+                throw new \Exception('You are not authorized to perform this action.');
+            }
+            $teamId = currentTeam()->id;
+            DB::transaction(function () use ($teamId): void {
+                $this->member->teams()->updateExistingPivot($teamId, ['role' => Role::GUEST->value]);
+                availSetGuestExpiry($this->member, $teamId, now()->addDays((int) config('avail.guest.default_days')));
+                RevokeUserTeamTokens::forUserTeam($this->member, $teamId);
+            });
+            $this->auditRoleUpdate($teamId, Role::GUEST);
             $this->dispatch('reloadWindow');
         } catch (\Exception $e) {
             $this->dispatch('error', $e->getMessage());
@@ -93,6 +120,11 @@ class Member extends Component
                 $this->member->teams()->detach($teamId);
                 RevokeUserTeamTokens::forUserTeam($this->member, $teamId);
                 $this->member->clearStoredTeamIfMatches($teamId);
+                availRevokeGuestProjectsInTeam($this->member, $teamId);
+                // Avail: removal sticks; auto-join won't add them back on their next login.
+                if ($teamId === 0) {
+                    availMarkRemovedFromRoot($this->member);
+                }
             });
             auditLog('ui.team_member.removed', [
                 'team_id' => $teamId,

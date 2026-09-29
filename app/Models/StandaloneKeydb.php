@@ -116,7 +116,7 @@ class StandaloneKeydb extends BaseModel
      */
     public static function ownedByCurrentTeam()
     {
-        return StandaloneKeydb::whereRelation('environment.project.team', 'id', currentTeam()->id)->orderBy('name');
+        return availGuestScope(StandaloneKeydb::whereRelation('environment.project.team', 'id', currentTeam()->id))->orderBy('name');
     }
 
     /**

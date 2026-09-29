@@ -81,6 +81,7 @@
                                 ['value' => 'owner', 'label' => 'Owner'],
                                 ['value' => 'admin', 'label' => 'Admin'],
                                 ['value' => 'member', 'label' => 'Member'],
+                                ['value' => 'guest', 'label' => 'Guest'],
                             ]" />
                     </div>
                     <div class="w-full sm:w-40">
@@ -125,6 +126,8 @@
             <livewire:team.invite-link />
             <livewire:team.invitations :invitations="$invitations" />
         @endcan
+
+        <livewire:team.removed-members />
     </div>
     </x-team.settings-layout>
 </div>

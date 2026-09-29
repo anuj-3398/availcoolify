@@ -38,7 +38,7 @@ class Project extends BaseModel
      */
     public static function ownedByCurrentTeam()
     {
-        return Project::whereTeamId(currentTeam()->id)->orderByRaw('LOWER(name)');
+        return availGuestScope(Project::whereTeamId(currentTeam()->id), '')->orderByRaw('LOWER(name)');
     }
 
     /**
@@ -93,6 +93,16 @@ class Project extends BaseModel
     public function team()
     {
         return $this->belongsTo(Team::class);
+    }
+
+    /**
+     * Avail: guests who may see this project (read-only).
+     */
+    public function guestUsers()
+    {
+        return $this->belongsToMany(User::class, 'project_guest_access')
+            ->withPivot('granted_by_user_id')
+            ->withTimestamps();
     }
 
     public function services()

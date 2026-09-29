@@ -4,6 +4,8 @@ namespace App\Enums;
 
 enum Role: string
 {
+    // Avail: read-only access to the projects ticked for them, optionally time-limited.
+    case GUEST = 'guest';
     case MEMBER = 'member';
     case ADMIN = 'admin';
     case OWNER = 'owner';
@@ -11,6 +13,7 @@ enum Role: string
     public function rank(): int
     {
         return match ($this) {
+            self::GUEST => 0,
             self::MEMBER => 1,
             self::ADMIN => 2,
             self::OWNER => 3,

@@ -119,7 +119,7 @@ class StandaloneMongodb extends BaseModel
      */
     public static function ownedByCurrentTeam()
     {
-        return StandaloneMongodb::whereRelation('environment.project.team', 'id', currentTeam()->id)->orderBy('name');
+        return availGuestScope(StandaloneMongodb::whereRelation('environment.project.team', 'id', currentTeam()->id))->orderBy('name');
     }
 
     /**

@@ -86,8 +86,9 @@ class FortifyServiceProvider extends ServiceProvider
                 // them explicitly on the invitation page (team.invitation.show).
                 // Restore the last active team; only fall back when unambiguous.
                 $team = $user->resolveStoredTeam();
-                if (! $team && $user->teams->isEmpty()) {
-                    $team = $user->recreate_personal_team();
+                // Avail: no personal-team fallback (see availJoinRootTeam()).
+                if (! $team && $user->teams->isEmpty() && availJoinRootTeam($user)) {
+                    $team = \App\Models\Team::find(0);
                 }
                 if ($team) {
                     session(['currentTeam' => $team]);

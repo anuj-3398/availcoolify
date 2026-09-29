@@ -66,6 +66,8 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping(60)
             ->runInBackground();
         $this->scheduleInstance->job(new ApiTokenExpirationWarningJob)->hourly()->onOneServer();
+        // Avail: "guest access ends soon / has ended" emails (no-op until email is configured).
+        $this->scheduleInstance->job(new \App\Jobs\AvailGuestAccessExpiryJob)->hourly()->onOneServer();
         $this->scheduleInstance->job(new CheckMissingDatabaseBackupsJob)->hourly()->onOneServer();
         $this->scheduleInstance->job(new RevalidateUnusableS3StoragesJob)->hourly()->onOneServer();
         $this->scheduleInstance->job(new ReconcileGithubRunnersJob)->everyMinute()->onOneServer();
