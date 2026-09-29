@@ -112,7 +112,7 @@ class StandaloneClickhouse extends BaseModel
      */
     public static function ownedByCurrentTeam()
     {
-        return StandaloneClickhouse::whereRelation('environment.project.team', 'id', currentTeam()->id)->orderBy('name');
+        return availGuestScope(StandaloneClickhouse::whereRelation('environment.project.team', 'id', currentTeam()->id))->orderBy('name');
     }
 
     /**

@@ -136,6 +136,8 @@ it('creates a new oidc user when provider registration is allowed while normal r
 });
 
 it('creates a new oidc user in the root team only when provider root auto-join is enabled', function () {
+    // Avail: only emails on the auto-join domains join the root team on their own.
+    config(['avail.auto_join_domains' => 'example.com']);
     Team::forceCreate(['id' => 0, 'name' => 'Root Team', 'personal_team' => true]);
     (new User)->forceFill([
         'id' => 0,

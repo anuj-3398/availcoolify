@@ -73,6 +73,7 @@ class User extends Authenticatable implements SendsEmail
         'force_password_reset' => 'boolean',
         'show_boarding' => 'boolean',
         'email_change_code_expires_at' => 'datetime',
+        'avail_removed_from_root_at' => 'datetime',
     ];
 
     /**
@@ -257,7 +258,17 @@ class User extends Authenticatable implements SendsEmail
 
     public function teams()
     {
-        return $this->belongsToMany(Team::class)->withPivot('role');
+        return $this->belongsToMany(Team::class)->withPivot('role', 'guest_expires_at');
+    }
+
+    /**
+     * Avail: projects this user may see as a guest.
+     */
+    public function guestProjects()
+    {
+        return $this->belongsToMany(Project::class, 'project_guest_access')
+            ->withPivot('granted_by_user_id')
+            ->withTimestamps();
     }
 
     public function changelogReads()
@@ -310,7 +321,13 @@ class User extends Authenticatable implements SendsEmail
 
     public function isMember()
     {
-        return $this->role() === 'member';
+        // Avail: guests get at least every restriction members have (hidden secrets etc.).
+        return in_array($this->role(), ['member', 'guest'], true);
+    }
+
+    public function isGuest()
+    {
+        return $this->role() === 'guest';
     }
 
     public function isAdminFromSession()

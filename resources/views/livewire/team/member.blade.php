@@ -24,6 +24,10 @@
         <span
             class="inline-flex rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium capitalize text-neutral-600 dark:bg-white/[0.06] dark:text-fg-dim">
             {{ data_get($member, 'pivot.role') }}
+            @if (data_get($member, 'pivot.role') === 'guest')
+                @php($guestProjectCount = $member->guestProjects()->where('team_id', currentTeam()->id)->count())
+                &middot; {{ $guestProjectCount }} {{ str('project')->plural($guestProjectCount) }}
+            @endif
         </span>
     </div>
     <div class="flex justify-end">
@@ -56,6 +60,12 @@
                                     Make member
                                 </button>
                             @endif
+                            @if (data_get($member, 'pivot.role') !== 'guest')
+                                <button type="button" class="listbox-option justify-start!"
+                                    wire:click="makeGuest" @click="open = false">
+                                    Make guest
+                                </button>
+                            @endif
                         @elseif (Auth::user()->isAdmin())
                             @if (data_get($member, 'pivot.role') === 'admin')
                                 <button type="button" class="listbox-option justify-start!"
@@ -66,6 +76,15 @@
                                 <button type="button" class="listbox-option justify-start!" wire:click="makeAdmin"
                                     @click="open = false">
                                     Make admin
+                                </button>
+                                <button type="button" class="listbox-option justify-start!"
+                                    wire:click="makeGuest" @click="open = false">
+                                    Make guest
+                                </button>
+                            @elseif (data_get($member, 'pivot.role') === 'guest')
+                                <button type="button" class="listbox-option justify-start!"
+                                    wire:click="makeReadonly" @click="open = false">
+                                    Make member
                                 </button>
                             @endif
                         @endif

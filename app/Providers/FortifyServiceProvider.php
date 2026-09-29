@@ -87,7 +87,7 @@ class FortifyServiceProvider extends ServiceProvider
                     // User is logging in for the first time after being invited
                     // Attach them to the invited team if not already attached
                     if (! $user->teams()->where('team_id', $invitation->team->id)->exists()) {
-                        $user->teams()->attach($invitation->team->id, ['role' => $invitation->role]);
+                        availAcceptInvitation($user, $invitation);
                     }
                     $team = $invitation->team;
                     $invitation->delete();
@@ -95,8 +95,9 @@ class FortifyServiceProvider extends ServiceProvider
                 } else {
                     // Restore the last active team; only fall back when unambiguous.
                     $team = $user->resolveStoredTeam();
-                    if (! $team && $user->teams->isEmpty()) {
-                        $team = $user->recreate_personal_team();
+                    // Avail: no personal-team fallback (see availJoinRootTeam()).
+                    if (! $team && $user->teams->isEmpty() && availJoinRootTeam($user)) {
+                        $team = \App\Models\Team::find(0);
                     }
                     if ($team) {
                         session(['currentTeam' => $team]);

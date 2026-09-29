@@ -116,7 +116,7 @@ class StandaloneRedis extends BaseModel
      */
     public static function ownedByCurrentTeam()
     {
-        return StandaloneRedis::whereRelation('environment.project.team', 'id', currentTeam()->id)->orderBy('name');
+        return availGuestScope(StandaloneRedis::whereRelation('environment.project.team', 'id', currentTeam()->id))->orderBy('name');
     }
 
     /**

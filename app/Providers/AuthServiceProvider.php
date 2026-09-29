@@ -147,6 +147,9 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Avail: guests may only view things inside the projects ticked for them.
+        Gate::before(fn ($user, string $ability, array $arguments) => availGuestGateDecision($user, $ability, $arguments));
+
         // Register gates for resource creation policy
         Gate::define('createAnyResource', [ResourceCreatePolicy::class, 'createAny']);
         // Avail: members may open "New resource" to create applications only.

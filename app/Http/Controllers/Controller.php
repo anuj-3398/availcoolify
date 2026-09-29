@@ -223,11 +223,14 @@ class Controller extends BaseController
 
             return redirect()->route('team.index');
         }
-        $user->teams()->attach($invitation->team->id, ['role' => $invitation->role]);
+        availAcceptInvitation($user, $invitation);
         $invitation->delete();
 
         refreshSession($invitation->team);
 
-        return redirect()->route('team.index');
+        // Avail: guests don't have the team pages.
+        return $invitation->role === 'guest'
+            ? redirect()->route('dashboard')
+            : redirect()->route('team.index');
     }
 }

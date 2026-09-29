@@ -28,11 +28,16 @@ function availCanCreateResourceType(?string $type): bool
 
 /**
  * Avail: everyone works in the root team (team 0, "Avail Team"). When the Clerk "auto-join root
- * team" setting is on, a user outside it joins as a member. Returns false when auto-join is off.
+ * team" setting is on, a user outside it with a company email (config avail.auto_join_domains)
+ * joins as a member, unless an admin removed them. Everyone else needs an invitation.
+ * Returns false when the user doesn't auto-join.
  */
 function availJoinRootTeam(?\App\Models\User $user): bool
 {
     if (! $user || $user->id === 0) {
+        return false;
+    }
+    if (! availEmailAutoJoins($user->email) || $user->avail_removed_from_root_at !== null) {
         return false;
     }
     $autoJoin = (bool) \App\Models\OauthSetting::where('provider', 'clerk')->value('auto_join_root_team');

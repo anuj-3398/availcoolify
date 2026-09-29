@@ -35,6 +35,7 @@ class DeploymentsIndicator extends Component
         return ApplicationDeploymentQueue::with(['application.environment.project'])
             ->whereIn('status', ['in_progress', 'queued'])
             ->whereIn('server_id', $servers->pluck('id'))
+            ->when(availIsGuest(), fn ($query) => $query->whereIn('application_id', \App\Models\Application::ownedByCurrentTeam()->pluck('applications.id')))
             ->orderBy('id')
             ->get([
                 'id',

@@ -34,7 +34,8 @@ class OauthLoginService
             availJoinRootTeam($user);
         }
 
-        $team = $user->currentTeam() ?? $user->teams()->first() ?? $user->recreate_personal_team();
+        // Avail: no personal-team fallback. A user without a team waits for an invitation.
+        $team = $user->currentTeam() ?? $user->teams()->first();
         session(['currentTeam' => $team]);
 
         if ($this->requiresTwoFactorChallenge($user)) {
@@ -272,7 +273,11 @@ class OauthLoginService
         }
 
         if ($oauthSetting->auto_join_root_team) {
-            return $this->createRootTeamOnlyUser($name, $email);
+            // Avail: company emails join the root team; anyone else gets an account without a
+            // team and waits for an invitation.
+            return availEmailAutoJoins($email)
+                ? $this->createRootTeamOnlyUser($name, $email)
+                : $this->createTeamlessUser($name, $email);
         }
 
         return User::create([
@@ -300,5 +305,14 @@ class OauthLoginService
 
             return $user;
         });
+    }
+
+    private function createTeamlessUser(string $name, string $email): User
+    {
+        return User::withoutEvents(fn () => User::create([
+            'name' => $name,
+            'email' => $email,
+            'password' => Hash::make(Str::random(64)),
+        ]));
     }
 }

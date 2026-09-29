@@ -114,7 +114,7 @@ class StandaloneMariadb extends BaseModel
      */
     public static function ownedByCurrentTeam()
     {
-        return StandaloneMariadb::whereRelation('environment.project.team', 'id', currentTeam()->id)->orderBy('name');
+        return availGuestScope(StandaloneMariadb::whereRelation('environment.project.team', 'id', currentTeam()->id))->orderBy('name');
     }
 
     /**

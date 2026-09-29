@@ -27,6 +27,10 @@ class EnsureTokenBelongsToCurrentTeamMember
         }
 
         $role = $team->pivot?->role;
+        // Avail: guests only get the read-only dashboard pages of their projects, never the API.
+        if ($role === 'guest') {
+            return response()->json(['message' => 'Guests cannot use the API.'], 403);
+        }
         // Match ApiAbility::MEMBER_DISALLOWED_ABILITIES — members are read-only.
         $elevated = $token->can('root')
             || $token->can('write')

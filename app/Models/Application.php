@@ -516,7 +516,7 @@ class Application extends BaseModel
      */
     public static function ownedByCurrentTeam()
     {
-        return Application::whereRelation('environment.project.team', 'id', currentTeam()->id)->orderBy('name');
+        return availGuestScope(Application::whereRelation('environment.project.team', 'id', currentTeam()->id))->orderBy('name');
     }
 
     /**
