@@ -182,6 +182,7 @@
                     <div>Status</div>
                     <div class="resource-domain">Domain</div>
                     <div class="resource-server">Server</div>
+                    <div class="resource-owner">Owner</div>
                     <div class="resource-tags">Tags</div>
                 </div>
 
@@ -246,6 +247,10 @@
 
                         <div class="resource-server truncate text-[12px] text-neutral-600 dark:text-fg-dim"
                             x-text="item.destination?.server?.name || 'Unknown'"></div>
+
+                        <div class="resource-owner truncate text-[12px] text-neutral-600 dark:text-fg-dim"
+                            :title="item.owner ? `Owner: ${item.owner}` : 'No owner recorded'"
+                            x-text="item.owner || '-'"></div>
 
                         <div class="resource-tags flex min-w-0 items-center gap-1 overflow-hidden">
                             <template x-for="tag in item.tags.slice(0, 2)" :key="tag.id">
@@ -322,6 +327,8 @@
                                         class="relative z-10 max-w-full self-start truncate text-[11px] text-neutral-500 hover:underline dark:text-fg-dim"
                                         :title="displayDomain(item.fqdn)" x-text="displayDomain(item.fqdn)"></a>
                                 </template>
+                                <p x-show="item.owner" class="truncate text-[11px] text-neutral-500 dark:text-fg-faint"
+                                    x-text="`Owner: ${item.owner}`"></p>
                             </div>
                         </article>
                     </template>
@@ -351,6 +358,7 @@
             typeFilters: [],
             tagFilters: [],
             serverFilters: [],
+            ownerFilters: [],
             statusFilters: [],
             sortBy: 'name-asc',
             viewMode: localStorage.getItem('environment-resource-view') || 'table',
@@ -396,6 +404,14 @@
                         }))),
                     },
                     {
+                        key: 'ownerFilters',
+                        label: 'Owners',
+                        options: this.uniqueOptions(this.resources.map((item) => ({
+                            value: this.ownerKey(item),
+                            label: item.owner || 'No owner',
+                        }))),
+                    },
+                    {
                         key: 'statusFilters',
                         label: 'Statuses',
                         options: this.uniqueOptions(this.resources.map((item) => ({
@@ -407,7 +423,7 @@
             },
             get activeFilterCount() {
                 return this.typeFilters.length + this.tagFilters.length + this.serverFilters.length +
-                    this.statusFilters.length;
+                    this.ownerFilters.length + this.statusFilters.length;
             },
             get filterButtonText() {
                 const selectedLabels = this.filterGroups.flatMap((group) => group.options
@@ -443,6 +459,7 @@
                         .some((tag) => this.tagFilters.includes(tag.name));
                     const serverName = item.destination?.server?.name || 'Unknown';
                     const matchesServer = this.serverFilters.length === 0 || this.serverFilters.includes(serverName);
+                    const matchesOwner = this.ownerFilters.length === 0 || this.ownerFilters.includes(this.ownerKey(item));
                     const matchesStatus = this.statusFilters.length === 0 || this.statusFilters.includes(this.statusState(item));
                     const searchable = [
                         item.name,
@@ -451,10 +468,11 @@
                         item.typeLabel,
                         item.status,
                         item.destination?.server?.name,
+                        item.owner,
                         ...(item.tags || []).map((tag) => tag.name),
                     ].filter(Boolean).join(' ').toLowerCase();
 
-                    return matchesType && matchesTags && matchesServer && matchesStatus &&
+                    return matchesType && matchesTags && matchesServer && matchesOwner && matchesStatus &&
                         (!query || searchable.includes(query));
                 });
 
@@ -493,6 +511,7 @@
                 this.typeFilters = [];
                 this.tagFilters = [];
                 this.serverFilters = [];
+                this.ownerFilters = [];
                 this.statusFilters = [];
                 this.page = 1;
             },
@@ -523,6 +542,9 @@
                 this.viewMode = mode;
                 this.page = 1;
                 localStorage.setItem('environment-resource-view', mode);
+            },
+            ownerKey(item) {
+                return item.owner || '__none__';
             },
             statusState(item) {
                 if (item.restartLimitReached) {

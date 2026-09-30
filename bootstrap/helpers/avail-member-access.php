@@ -278,3 +278,22 @@ function availHostUsedElsewhere(string $host, \App\Models\Application $applicati
 
     return $applications->concat($services)->contains(fn ($fqdn) => $hostsOf($fqdn)->contains($host));
 }
+
+/**
+ * Avail: the owner label of a resource, i.e. the name of the user who
+ * created the application. Null for databases, services and apps created
+ * before creators were tracked. Everyone who can see the resource sees it.
+ */
+function availOwnerName(mixed $resource): ?string
+{
+    if (! $resource instanceof \App\Models\Application || $resource->avail_created_by_user_id === null) {
+        return null;
+    }
+
+    $creator = $resource->availCreator;
+    if (! $creator) {
+        return null;
+    }
+
+    return filled($creator->name) ? $creator->name : $creator->email;
+}
