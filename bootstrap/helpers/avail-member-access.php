@@ -203,7 +203,10 @@ function availGuardApplicationChanges(\App\Models\Application $application): voi
  */
 function availMemberDomainError(\App\Models\Application $application, ?string $fqdn): ?string
 {
-    $wildcardHost = strtolower((string) parse_url((string) data_get($application->destination?->server, 'settings.wildcard_domain'), PHP_URL_HOST));
+    // Read the setting fresh: relations and server settings may be cached for the request.
+    $serverId = $application->destination()->value('server_id');
+    $wildcard = $serverId ? \App\Models\ServerSetting::where('server_id', $serverId)->value('wildcard_domain') : null;
+    $wildcardHost = strtolower((string) parse_url((string) $wildcard, PHP_URL_HOST));
     if ($wildcardHost === '') {
         return 'Only admins can set addresses on this server.';
     }
