@@ -221,7 +221,7 @@ class Domains extends Component
 
     public function toggleNoindexDomain(string $domain, string|bool $indexing): void
     {
-        $this->authorize('update', $this->application);
+        $this->authorize('configure', $this->application);
 
         $noindex = $indexing === true || $indexing === 'noindex';
         $domains = $this->application->noindexDomains();
@@ -243,7 +243,7 @@ class Domains extends Component
 
     public function updateForceHttps(): void
     {
-        $this->authorize('update', $this->application);
+        $this->authorize('configure', $this->application);
         $this->validateOnly('isForceHttpsEnabled');
 
         $this->application->settings->is_force_https_enabled = $this->isForceHttpsEnabled;
@@ -705,7 +705,7 @@ class Domains extends Component
 
     protected function authorizeUpdateForDomainConnect(): void
     {
-        $this->authorize('update', $this->application);
+        $this->authorize('configure', $this->application);
     }
 
     protected function usesInstanceNetworkAddressesForDnsHints(): bool
@@ -715,7 +715,7 @@ class Domains extends Component
 
     public function checkAllDns(): void
     {
-        $this->authorize('update', $this->application);
+        $this->authorize('configure', $this->application);
 
         foreach ($this->domainRows as $row) {
             $this->queueUrlsDns([$row['url']], $row['service'] ?? null);
@@ -724,7 +724,7 @@ class Domains extends Component
 
     public function checkDomainDns(int $index): void
     {
-        $this->authorize('update', $this->application);
+        $this->authorize('configure', $this->application);
 
         if (! isset($this->domainRows[$index])) {
             return;
@@ -944,7 +944,7 @@ class Domains extends Component
 
     public function confirmUseUnknownPort(): void
     {
-        $this->authorize('update', $this->application);
+        $this->authorize('configure', $this->application);
         $this->forceUseUnknownPort = true;
         $this->showPortWarningModal = false;
         $action = $this->pendingPortAction;
@@ -977,7 +977,7 @@ class Domains extends Component
             return;
         }
 
-        $this->authorize('update', $this->application);
+        $this->authorize('configure', $this->application);
         $wasRedirect = $this->pendingAction === 'redirect';
         $this->pendingAction = null;
         $this->pendingRedirectService = null;
@@ -989,7 +989,7 @@ class Domains extends Component
     public function addDomain(): void
     {
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
 
             if ($this->labelsAreWritable) {
                 $this->dispatch('error', 'Domains cannot be edited while container labels are writable. Set domains in the Labels section on General.');
@@ -1324,7 +1324,7 @@ class Domains extends Component
     public function addSuggestedDomain(int $index): void
     {
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
 
             if ($this->labelsAreWritable) {
                 $this->dispatch('error', 'Domains cannot be edited while container labels are writable.');
@@ -1422,7 +1422,7 @@ class Domains extends Component
 
     public function regenerateEditingDomain(): void
     {
-        $this->authorize('update', $this->application);
+        $this->authorize('configure', $this->application);
 
         if ($this->labelsAreWritable || $this->editingIndex === null || ! isset($this->domainRows[$this->editingIndex])) {
             return;
@@ -1456,7 +1456,7 @@ class Domains extends Component
     public function updateDomain(): void
     {
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
 
             if ($this->labelsAreWritable) {
                 $this->dispatch('error', 'Domains cannot be edited while container labels are writable.');
@@ -1593,7 +1593,7 @@ class Domains extends Component
     public function removeDomain(int $index, string $password = '', array $selectedActions = []): void
     {
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
 
             if ($this->labelsAreWritable) {
                 $this->dispatch('error', 'Domains cannot be edited while container labels are writable.');
@@ -1657,7 +1657,7 @@ class Domains extends Component
     public function generateDomain(?string $serviceName = null): void
     {
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
 
             if ($this->labelsAreWritable) {
                 $this->dispatch('error', 'Domains cannot be edited while container labels are writable.');
@@ -1718,7 +1718,7 @@ class Domains extends Component
     public function setRedirect(): void
     {
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
 
             if ($this->isCompose) {
                 $this->dispatch('error', 'Set the redirect direction per compose service.');
@@ -1776,7 +1776,7 @@ class Domains extends Component
     public function setServiceRedirect(string $serviceName, mixed ...$modalArgs): void
     {
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
 
             if (! $this->isCompose) {
                 $this->dispatch('error', 'Per-service redirect is only available for Docker Compose applications.');
@@ -2176,6 +2176,9 @@ class Domains extends Component
         if ($noindexDomains !== null) {
             $this->application->setNoindexDomains($noindexDomains);
         }
+
+        // Avail: members may only use free <name>.<wildcard domain> addresses; no "use anyway".
+        availGuardApplicationChanges($this->application);
 
         if ($checkConflicts && ! $this->forceSaveDomains) {
             $result = checkDomainUsage(resource: $this->application);

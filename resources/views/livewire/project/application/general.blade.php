@@ -1,8 +1,13 @@
 <div x-data="{
     initLoadingCompose: $wire.entangle('initLoadingCompose'),
     canUpdate: @js(auth()->user()->can('update', $application)),
+    {{-- Avail: the member who created the app edits its everyday settings. --}}
+    canConfigure: @js(auth()->user()->can('configure', $application)),
     shouldDisable() {
         return this.initLoadingCompose || !this.canUpdate;
+    },
+    shouldDisableBasic() {
+        return this.initLoadingCompose || !this.canConfigure;
     }
 }">
     <form wire:submit='submit' class="application-settings-form flex flex-col">
@@ -19,8 +24,8 @@
                 </x-slot:actions>
             @endif
             <div class="grid gap-4">
-                <x-forms.input x-bind:disabled="shouldDisable()" id="name" label="Name" required />
-                <x-forms.input x-bind:disabled="shouldDisable()" id="description" label="Description" />
+                <x-forms.input x-bind:disabled="shouldDisableBasic()" id="name" label="Name" required />
+                <x-forms.input x-bind:disabled="shouldDisableBasic()" id="description" label="Description" />
             </div>
 
             </x-application.settings-section>
@@ -107,13 +112,13 @@
             @if (!$application->dockerfile && $application->build_pack !== 'dockerimage')
                 <div class="application-build-pack-options mb-5 border-b border-neutral-200 pb-5 dark:border-white/[0.07]">
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <x-forms.listbox id="buildPack" label="Build strategy" live :options="[
+                        <x-forms.listbox id="buildPack" label="Build strategy" live :options="array_values(array_filter([
                             ['value' => 'railpack', 'label' => 'Railpack'],
                             ['value' => 'nixpacks', 'label' => 'Nixpacks'],
-                            ['value' => 'static', 'label' => 'Static'],
+                            ['value' => 'static', 'label' => 'Static (serves files as they are, no build)'],
                             ['value' => 'dockerfile', 'label' => 'Dockerfile'],
-                            ['value' => 'dockercompose', 'label' => 'Compose'],
-                        ]" x-bind:disabled="shouldDisable()" />
+                            auth()->user()->can('update', $application) || $buildPack === 'dockercompose' ? ['value' => 'dockercompose', 'label' => 'Compose'] : null,
+                        ]))" x-bind:disabled="shouldDisableBasic()" />
                         @if ($isStatic || $buildPack === 'static')
                             <x-forms.listbox id="staticImage" label="Web server" required :options="[
                                 ['value' => 'nginx:alpine', 'label' => 'nginx:alpine'],
@@ -132,7 +137,7 @@
                             ['value' => 'spa', 'label' => 'SPA (single-page application)'],
                         ]"
                             helper="Static: the final build assets are served as a static site. SPA: a static site with single-page-app routing."
-                            x-bind:disabled="!canUpdate" />
+                            x-bind:disabled="!canConfigure" />
                     </div>
                 </div>
             @endif
@@ -209,7 +214,7 @@
                                         <x-forms.textarea
                                             helper="Order-based pattern matching to filter Git webhook deployments. Supports wildcards (*, **, ?) and negation (!). Last matching pattern wins."
                                             placeholder="services/api/**" id="watchPaths" label="Watch paths"
-                                            x-bind:disabled="shouldDisable()" />
+                                            x-bind:disabled="shouldDisableBasic()" />
                                     </div>
                                 @endif
                             </div>
@@ -235,27 +240,27 @@
                             }" class="grid gap-4 lg:grid-cols-2">
                                 <x-forms.input placeholder="/"
                                     label="Base directory" helper="Directory to use as root. Useful for monorepos."
-                                    x-bind:disabled="!canUpdate" x-model="baseDir" @blur="normalizeBaseDir()" />
+                                    x-bind:disabled="!canConfigure" x-model="baseDir" @blur="normalizeBaseDir()" />
                                 @if ($buildPack === 'dockerfile' && !$application->dockerfile)
                                     <x-forms.input placeholder="/Dockerfile"
                                         label="Dockerfile location"
                                         helper="It is calculated together with the Base Directory:<br><span class='dark:text-warning'>{{ Str::start($application->base_directory . $application->dockerfile_location, '/') }}</span>"
-                                        x-bind:disabled="!canUpdate" x-model="dockerfileLocation"
+                                        x-bind:disabled="!canConfigure" x-model="dockerfileLocation"
                                         @blur="normalizeDockerfileLocation()" />
                                 @endif
 
                                 @if ($buildPack === 'dockerfile')
                                     <x-forms.input id="dockerfileTargetBuild" label="Docker build stage target"
                                         helper="Useful if you have multi-staged dockerfile."
-                                        x-bind:disabled="!canUpdate" />
+                                        x-bind:disabled="!canConfigure" />
                                 @endif
                                 @if ($application->could_set_build_commands())
                                     @if ($application->settings->is_static)
                                         <x-forms.input placeholder="/dist" id="publishDirectory"
-                                            label="Publish directory" required x-bind:disabled="!canUpdate" />
+                                            label="Publish directory" required x-bind:disabled="!canConfigure" />
                                     @else
                                         <x-forms.input placeholder="/" id="publishDirectory"
-                                            label="Publish directory" x-bind:disabled="!canUpdate" />
+                                            label="Publish directory" x-bind:disabled="!canConfigure" />
                                     @endif
                                 @endif
 
@@ -265,17 +270,17 @@
                                     <x-forms.textarea
                                         helper="Order-based pattern matching to filter Git webhook deployments. Supports wildcards (*, **, ?) and negation (!). Last matching pattern wins."
                                         placeholder="src/pages/**" id="watchPaths" label="Watch paths"
-                                        x-bind:disabled="!canUpdate" />
+                                        x-bind:disabled="!canConfigure" />
                                 </div>
                             @endif
                             @if ($application->could_set_build_commands() && ($buildPack === 'nixpacks' || $buildPack === 'railpack'))
                                 <div class="grid gap-4 lg:grid-cols-3">
                                     <x-forms.input helper="If you modify this, you probably need to have a {{ $buildPack === 'railpack' ? 'railpack.json' : 'nixpacks.toml' }}"
-                                        id="installCommand" label="Install command" x-bind:disabled="!canUpdate" />
+                                        id="installCommand" label="Install command" x-bind:disabled="!canConfigure" />
                                     <x-forms.input helper="If you modify this, you probably need to have a {{ $buildPack === 'railpack' ? 'railpack.json' : 'nixpacks.toml' }}"
-                                        id="buildCommand" label="Build command" x-bind:disabled="!canUpdate" />
+                                        id="buildCommand" label="Build command" x-bind:disabled="!canConfigure" />
                                     <x-forms.input helper="If you modify this, you probably need to have a {{ $buildPack === 'railpack' ? 'railpack.json' : 'nixpacks.toml' }}"
-                                        id="startCommand" label="Start command" x-bind:disabled="!canUpdate" />
+                                        id="startCommand" label="Start command" x-bind:disabled="!canConfigure" />
                                 </div>
                             @endif
                             @if ($buildPack !== 'dockercompose')
@@ -309,7 +314,7 @@
                             Custom Nginx configuration
                             <x-helper helper="You can add custom Nginx configuration here." />
                         </label>
-                        @can('update', $application)
+                        @can('configure', $application)
                             <x-modal-confirmation title="Confirm Nginx Configuration Generation?"
                                 buttonTitle="Generate default"
                                 submitAction="generateNginxConfiguration('{{ $application->settings->is_spa ? 'spa' : 'static' }}')"
@@ -323,7 +328,7 @@
                     </div>
                     <x-forms.textarea id="customNginxConfiguration"
                         placeholder="Empty means default configuration will be used." rows="10"
-                        monacoEditorLanguage="nginx" useMonacoEditor x-bind:disabled="!canUpdate" />
+                        monacoEditorLanguage="nginx" useMonacoEditor x-bind:disabled="!canConfigure" />
                 </div>
             @endif
             @if ($buildPack === 'dockercompose')
@@ -376,7 +381,7 @@
             @if ($application->dockerfile)
                 <div class="mt-6">
                     <x-forms.textarea label="Dockerfile" id="dockerfile" monacoEditorLanguage="dockerfile"
-                        useMonacoEditor rows="6" x-bind:disabled="!canUpdate"> </x-forms.textarea>
+                        useMonacoEditor rows="6" x-bind:disabled="!canConfigure"> </x-forms.textarea>
                 </div>
             @endif
             </x-application.settings-section>
@@ -393,16 +398,16 @@
                     @if ($application->build_pack === 'dockerimage')
                         @if ($application->destination->server->isSwarm())
                             <x-forms.input required id="dockerRegistryImageName" label="Image" placeholder="nginx"
-                                x-bind:disabled="!canUpdate" />
+                                x-bind:disabled="!canConfigure" />
                             <x-forms.input id="dockerRegistryImageTag" label="Tag" placeholder="alpine"
                                 helper="Enter a tag (e.g., 'latest', 'v1.2.3') or SHA256 hash (e.g., 'sha256-59e02939b1bf39f16c93138a28727aec520bb916da021180ae502c61626b3cf0')"
-                                x-bind:disabled="!canUpdate" />
+                                x-bind:disabled="!canConfigure" />
                         @else
                             <x-forms.input id="dockerRegistryImageName" label="Image" placeholder="nginx"
-                                x-bind:disabled="!canUpdate" />
+                                x-bind:disabled="!canConfigure" />
                             <x-forms.input id="dockerRegistryImageTag" label="Tag" placeholder="alpine"
                                 helper="Enter a tag (e.g., 'latest', 'v1.2.3') or SHA256 hash (e.g., 'sha256-59e02939b1bf39f16c93138a28727aec520bb916da021180ae502c61626b3cf0')"
-                                x-bind:disabled="!canUpdate" />
+                                x-bind:disabled="!canConfigure" />
                         @endif
                     @else
                         @if (
@@ -411,20 +416,20 @@
                                 $application->settings->is_build_server_enabled ||
                                 ! $application->destination->server->canBuildApplications())
                             <x-forms.input id="dockerRegistryImageName" required label="Image"
-                                placeholder="ghcr.io/your-org/your-app" x-bind:disabled="!canUpdate" />
+                                placeholder="ghcr.io/your-org/your-app" x-bind:disabled="!canConfigure" />
                             <x-forms.input id="dockerRegistryImageTag"
                                 helper="If set, it will tag the built image with this tag too. <br><br>Example: If you set it to 'latest', it will push the image with the commit sha tag + with the latest tag."
                                 placeholder="latest" label="Tag"
-                                x-bind:disabled="!canUpdate" />
+                                x-bind:disabled="!canConfigure" />
                         @else
                             <x-forms.input id="dockerRegistryImageName"
                                 helper="Empty means it won't push the image to a docker registry. Pre-tag the image with your registry url if you want to push it to a private registry (default: Dockerhub). <br><br>Example: ghcr.io/myimage"
                                 placeholder="ghcr.io/your-org/your-app"
-                                label="Image" x-bind:disabled="!canUpdate" />
+                                label="Image" x-bind:disabled="!canConfigure" />
                             <x-forms.input id="dockerRegistryImageTag"
                                 placeholder="latest"
                                 helper="If set, it will tag the built image with this tag too. <br><br>Example: If you set it to 'latest', it will push the image with the commit sha tag + with the latest tag."
-                                label="Tag" x-bind:disabled="!canUpdate" />
+                                label="Tag" x-bind:disabled="!canConfigure" />
                         @endif
                     @endif
                 </div>
@@ -507,18 +512,18 @@
                         <x-forms.input id="portsExposes" label="Ports exposes" readonly
                             :helper="$portsExposesDomainHint"
                             canGate="update" :canResource="$application"
-                            x-bind:disabled="!canUpdate" />
+                            x-bind:disabled="!canConfigure" />
                     @else
                         @if ($application->settings->is_container_label_readonly_enabled === false)
                             <x-forms.input placeholder="3000,3001" id="portsExposes" label="Ports exposes" readonly
                                 :helper="'Readonly labels are disabled. You can set the ports manually in the labels section.<br><br>'.$portsExposesDomainHint"
                                 canGate="update" :canResource="$application"
-                                x-bind:disabled="!canUpdate" />
+                                x-bind:disabled="!canConfigure" />
                         @else
                             <x-forms.input placeholder="3000,3001" id="portsExposes" label="Ports exposes"
                                 :helper="'A comma separated list of ports your application uses. The first port will be used as default healthcheck port if nothing defined in the Healthcheck menu. Be sure to set this correctly.<br><br>'.$portsExposesDomainHint"
                                 canGate="update" :canResource="$application"
-                                x-bind:disabled="!canUpdate" />
+                                x-bind:disabled="!canConfigure" />
                         @endif
                     @endif
                     <p class="mt-1.5 text-xs text-neutral-500 dark:text-fg-dim">
@@ -574,13 +579,13 @@
                         :options="[
                             ['value' => 'none', 'label' => 'None'],
                             ['value' => 'basic', 'label' => 'HTTP Basic Authentication'],
-                        ]" x-bind:disabled="!canUpdate" />
+                        ]" x-bind:disabled="!canConfigure" />
                     @if ($authMode === 'basic')
                         <div class="mt-5 grid w-full gap-4 border-t border-neutral-200 pt-5 sm:grid-cols-2 dark:border-white/[0.07]">
                             <x-forms.input id="httpBasicAuthUsername" label="Username" required
-                                x-bind:disabled="!canUpdate" />
+                                x-bind:disabled="!canConfigure" />
                             <x-forms.input id="httpBasicAuthPassword" type="password" label="Password" required
-                                x-bind:disabled="!canUpdate" />
+                                x-bind:disabled="!canConfigure" />
                         </div>
                     @endif
                     @endif
@@ -590,21 +595,21 @@
             <x-application.settings-section id="deployment-lifecycle-section" title="Deployment lifecycle" helper="Optional commands executed right before and after each deployment.">
             <div class="grid gap-4 sm:grid-cols-2">
                 <div class="flex flex-col gap-4">
-                    <x-forms.input x-bind:disabled="shouldDisable()" placeholder="php artisan migrate"
+                    <x-forms.input x-bind:disabled="shouldDisableBasic()" placeholder="php artisan migrate"
                         id="preDeploymentCommand" label="Pre-deployment"
                         helper="An optional script or command to execute in the existing container before the deployment begins.<br>It is always executed with 'sh -c', so you do not need add it manually." />
                     @if ($buildPack === 'dockercompose')
-                        <x-forms.input x-bind:disabled="shouldDisable()" id="preDeploymentCommandContainer"
+                        <x-forms.input x-bind:disabled="shouldDisableBasic()" id="preDeploymentCommandContainer"
                             label="Container name"
                             helper="The name of the container to execute within. You can leave it blank if your application only has one container." />
                     @endif
                 </div>
                 <div class="flex flex-col gap-4">
-                    <x-forms.input x-bind:disabled="shouldDisable()" placeholder="php artisan migrate"
+                    <x-forms.input x-bind:disabled="shouldDisableBasic()" placeholder="php artisan migrate"
                         id="postDeploymentCommand" label="Post-deployment"
                         helper="An optional script or command to execute in the newly built container after the deployment completes.<br>It is always executed with 'sh -c', so you do not need add it manually." />
                     @if ($buildPack === 'dockercompose')
-                        <x-forms.input x-bind:disabled="shouldDisable()" id="postDeploymentCommandContainer"
+                        <x-forms.input x-bind:disabled="shouldDisableBasic()" id="postDeploymentCommandContainer"
                             label="Container name"
                             helper="The name of the container to execute within. You can leave it blank if your application only has one container." />
                     @endif

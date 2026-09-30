@@ -54,6 +54,18 @@ class ApplicationPolicy
     }
 
     /**
+     * Avail: edit the everyday settings (branch, build pack, commands, ports, domains, health
+     * check...). Admins, plus the member who created the app. availGuardApplicationChanges()
+     * limits which fields that member may actually change.
+     */
+    public function configure(User $user, Application $application): bool
+    {
+        $teamId = $this->getTeamId($application);
+
+        return $teamId !== null && ($user->isAdminOfTeam($teamId) || availOwnsApplication($user, $application));
+    }
+
+    /**
      * Determine whether the user can delete the model.
      */
     public function delete(User $user, Application $application): bool

@@ -1,5 +1,5 @@
 @php
-    $canUpdate = auth()->user()->can('update', $resource);
+    $canUpdate = auth()->user()->can($resource instanceof \App\Models\Application ? 'configure' : 'update', $resource);
 @endphp
 
 <form wire:submit="submit" class="application-settings-form flex flex-col gap-6">
@@ -9,15 +9,15 @@
         helper="Define how Coolify determines whether this application is ready to receive traffic.">
         <x-slot:actions>
             @if (!$healthCheckEnabled)
-                <x-modal-confirmation :disabled="!auth()->user()->can('update', $resource)"
-                    :authDisabled="!auth()->user()->can('update', $resource)"
+                <x-modal-confirmation :disabled="! $canUpdate"
+                    :authDisabled="! $canUpdate"
                     title="Enable healthcheck?" buttonTitle="Enable"
                     submitAction="toggleHealthcheck" :actions="['Enable healthcheck for this resource.']"
                     warningMessage="If the healthcheck fails, your application will become inaccessible. Review the <a href='https://coolify.io/docs/knowledge-base/health-checks' target='_blank' class='underline text-white'>Healthchecks guide</a> before continuing."
                     step2ButtonText="Enable healthcheck" :confirmWithText="false"
                     :confirmWithPassword="false" isHighlightedButton />
             @else
-                <x-forms.button canGate="update" :canResource="$resource" type="button"
+                <x-forms.button canGate="{{ $resource instanceof \App\Models\Application ? 'configure' : 'update' }}" :canResource="$resource" type="button"
                     wire:click="toggleHealthcheck">
                     Disable
                 </x-forms.button>
@@ -54,20 +54,20 @@
                     ['value' => 'http', 'label' => 'HTTP'],
                     ['value' => 'https', 'label' => 'HTTPS'],
                 ]" :disabled="! $canUpdate" />
-                <x-forms.input canGate="update" :canResource="$resource" id="healthCheckHost"
+                <x-forms.input canGate="{{ $resource instanceof \App\Models\Application ? 'configure' : 'update' }}" :canResource="$resource" id="healthCheckHost"
                     placeholder="localhost" label="Host" required />
-                <x-forms.input canGate="update" :canResource="$resource" type="number"
+                <x-forms.input canGate="{{ $resource instanceof \App\Models\Application ? 'configure' : 'update' }}" :canResource="$resource" type="number"
                     id="healthCheckPort" helper="Uses the first exposed port when empty." placeholder="80"
                     label="Port" />
             </div>
             <div class="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_10rem]">
-                <x-forms.input canGate="update" :canResource="$resource" id="healthCheckPath"
+                <x-forms.input canGate="{{ $resource instanceof \App\Models\Application ? 'configure' : 'update' }}" :canResource="$resource" id="healthCheckPath"
                     placeholder="/health" label="Path" required />
-                <x-forms.input canGate="update" :canResource="$resource" type="number"
+                <x-forms.input canGate="{{ $resource instanceof \App\Models\Application ? 'configure' : 'update' }}" :canResource="$resource" type="number"
                     id="healthCheckReturnCode" placeholder="200" label="Expected code" required />
             </div>
             <div class="mt-4">
-                <x-forms.input canGate="update" :canResource="$resource" id="healthCheckResponseText"
+                <x-forms.input canGate="{{ $resource instanceof \App\Models\Application ? 'configure' : 'update' }}" :canResource="$resource" id="healthCheckResponseText"
                     placeholder="OK" label="Expected response text"
                     helper="Leave empty when the response body does not need to contain specific text." />
             </div>
@@ -80,7 +80,7 @@
                 are blocked.
             </x-callout>
             <div class="mt-4">
-                <x-forms.input canGate="update" :canResource="$resource" id="healthCheckCommand"
+                <x-forms.input canGate="{{ $resource instanceof \App\Models\Application ? 'configure' : 'update' }}" :canResource="$resource" id="healthCheckCommand"
                     label="Command" placeholder="pg_isready -U postgres"
                     helper="Use a single executable command without shell expansion."
                     :required="$healthCheckType === 'cmd'" />
@@ -91,13 +91,13 @@
     <x-application.settings-section id="healthcheck-timing-section" title="Timing and retries"
         helper="Control how quickly healthchecks start, repeat, and fail.">
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <x-forms.input canGate="update" :canResource="$resource" min="1" type="number"
+            <x-forms.input canGate="{{ $resource instanceof \App\Models\Application ? 'configure' : 'update' }}" :canResource="$resource" min="1" type="number"
                 id="healthCheckInterval" placeholder="30" label="Interval (seconds)" required />
-            <x-forms.input canGate="update" :canResource="$resource" min="1" type="number"
+            <x-forms.input canGate="{{ $resource instanceof \App\Models\Application ? 'configure' : 'update' }}" :canResource="$resource" min="1" type="number"
                 id="healthCheckTimeout" placeholder="30" label="Timeout (seconds)" required />
-            <x-forms.input canGate="update" :canResource="$resource" min="1" type="number"
+            <x-forms.input canGate="{{ $resource instanceof \App\Models\Application ? 'configure' : 'update' }}" :canResource="$resource" min="1" type="number"
                 id="healthCheckRetries" placeholder="3" label="Retries" required />
-            <x-forms.input canGate="update" :canResource="$resource" min="1" type="number"
+            <x-forms.input canGate="{{ $resource instanceof \App\Models\Application ? 'configure' : 'update' }}" :canResource="$resource" min="1" type="number"
                 id="healthCheckStartPeriod" placeholder="30" label="Start period (seconds)" required />
         </div>
     </x-application.settings-section>
