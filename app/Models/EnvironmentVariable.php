@@ -183,6 +183,27 @@ class EnvironmentVariable extends BaseModel
         return $this->morphTo();
     }
 
+    /**
+     * Avail: audit events name the app (or service, database) the variable belongs to.
+     * Only identifiers; the value is never logged.
+     *
+     * @return array<string, mixed>
+     */
+    protected function auditContext(): array
+    {
+        $resource = $this->resourceable;
+        if (! $resource) {
+            return [];
+        }
+
+        return [
+            'parent_type' => \Illuminate\Support\Str::snake(class_basename($resource)),
+            'parent_uuid' => $resource->uuid ?? null,
+            'parent_name' => $resource->name ?? null,
+            'is_preview' => (bool) $this->is_preview,
+        ];
+    }
+
     public function resource()
     {
         return $this->resourceable;

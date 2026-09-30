@@ -188,6 +188,28 @@ test('a member can still save an application whose variables an admin gave a sha
     expect($this->ownApp->environment_variables()->where('key', 'NEW_FLAG')->first()?->value)->toBe('on');
 });
 
+test('a member\'s variable change is audited with who, the key and the app, never the value', function () {
+    $this->withoutDefer();
+    memberEnvActAs($this->member, $this->team);
+
+    Livewire::test(EnvironmentVariableAll::class, ['resource' => $this->ownApp])
+        ->call('submit', memberEnvAddData('OPENAI_API_KEY', 'sk-very-secret-value'));
+
+    $event = \App\Models\AuditEvent::query()
+        ->where('resource_type', 'environment_variable')
+        ->where('action', 'created')
+        ->where('resource_name', 'OPENAI_API_KEY')
+        ->latest('id')
+        ->first();
+
+    expect($event)->not->toBeNull()
+        ->and($event->actor_email)->toBe($this->member->email)
+        ->and(data_get($event->metadata, 'parent_type'))->toBe('application')
+        ->and(data_get($event->metadata, 'parent_name'))->toBe('own-app')
+        ->and(data_get($event->metadata, 'parent_uuid'))->toBe($this->ownApp->uuid)
+        ->and(json_encode($event->metadata))->not->toContain('sk-very-secret-value');
+});
+
 test('guests never manage variables, even on an application recorded as theirs', function () {
     $guest = User::factory()->create();
     $guest->teams()->attach($this->team, ['role' => 'guest']);
