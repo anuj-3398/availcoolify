@@ -109,7 +109,7 @@ Everyone who signs in with Clerk with an @availproject.org email joins Avail Tea
 
 ## Environment variables and secrets
 
-Set variables per app under **app → Environment Variables**; they apply on the next deploy, not to the running container. You can add, change and delete the variables of apps you created (for example an API key your app needs), and see their values; other apps' variables need the Admin role.
+Set variables per app under **app → Environment Variables**; they apply on the next deploy, not to the running container. You can add, change and delete the variables of apps you created (for example an API key your app needs), and see their values; other apps' variables need the Admin role. Every add, change and delete is recorded under **Team → Audit log** (who, which key, which app; never the value).
 
 | Option | What it does |
 | --- | --- |
