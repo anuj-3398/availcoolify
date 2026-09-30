@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Project\New;
 
+use App\Livewire\Project\New\Concerns\AvailAppSetup;
 use App\Models\Application;
 use App\Models\GithubApp;
 use App\Models\GitlabApp;
@@ -17,6 +18,10 @@ use Spatie\Url\Url;
 class PublicGitRepository extends Component
 {
     use AuthorizesRequests;
+    use AvailAppSetup;
+
+    /** Avail: branch names read from GitHub, offered as a dropdown. Empty = type the branch. */
+    public array $availBranches = [];
 
     public string $repository_url;
 
@@ -73,6 +78,7 @@ class PublicGitRepository extends Component
             'base_directory' => 'nullable|string',
             'docker_compose_location' => ValidationPatterns::filePathRules(),
             'git_branch' => ['required', 'string', new ValidGitBranch],
+            ...$this->availSetupRules(),
         ];
     }
 
@@ -161,29 +167,61 @@ class PublicGitRepository extends Component
         }
         try {
             $this->branchFound = false;
+            $this->availBranches = [];
             $this->getGitSource();
-            $this->getBranch();
+            if ($this->git_source instanceof GithubApp) {
+                $this->availLoadGithubBranches();
+            } else {
+                $this->getBranch();
+            }
             if (str($this->repository_url)->contains('tangled')) {
                 $this->git_branch = 'master';
             }
             $this->selectedBranch = $this->git_branch;
         } catch (\Throwable $e) {
-            if ($this->rate_limit_remaining == 0) {
-                $this->selectedBranch = $this->git_branch;
-                $this->branchFound = true;
+            return handleError($e, $this);
+        }
+    }
 
-                return;
-            }
-            if (! $this->branchFound && $this->git_branch === 'main') {
-                try {
-                    $this->git_branch = 'master';
-                    $this->getBranch();
-                } catch (\Throwable $e) {
-                    return handleError($e, $this);
-                }
+    /**
+     * Avail: use the repository's real default branch (not a guessed "main") and offer every
+     * branch. Upstream treated any failed lookup as "rate limited" and kept "main", locked.
+     * If GitHub can't be read, the branch field stays editable instead.
+     */
+    private function availLoadGithubBranches(): void
+    {
+        $branchFromUrl = $this->repository_url_parsed->getSegment(3) === 'tree';
+        try {
+            if ($branchFromUrl) {
+                $this->getBranch();
             } else {
-                return handleError($e, $this);
+                $repository = githubApi(source: $this->git_source, endpoint: "/repos/{$this->git_repository}");
+                $this->availRememberRateLimit($repository);
+                $this->git_branch = (string) (data_get($repository['data'], 'default_branch') ?: $this->git_branch);
             }
+
+            $branches = githubApi(source: $this->git_source, endpoint: "/repos/{$this->git_repository}/branches?per_page=100", throwError: false);
+            $this->availRememberRateLimit($branches);
+            $names = collect($branches['data'])
+                ->filter(fn ($branch) => is_array($branch) && filled($branch['name'] ?? null))
+                ->pluck('name')
+                ->values();
+            if ($names->isNotEmpty() && ! $names->contains($this->git_branch)) {
+                $names->prepend($this->git_branch);
+            }
+            $this->availBranches = $names->all();
+        } catch (\Throwable) {
+            $this->availBranches = [];
+            $this->dispatch('warning', "Couldn't read the branches from GitHub. Check the repository URL, or type the branch name.");
+        }
+        $this->branchFound = true;
+    }
+
+    private function availRememberRateLimit(array $response): void
+    {
+        if ($response['rate_limit_remaining'] !== null) {
+            $this->rate_limit_remaining = (int) $response['rate_limit_remaining'];
+            $this->rate_limit_reset = Carbon::parse((int) $response['rate_limit_reset'])->format('Y-M-d H:i:s');
         }
     }
 
@@ -264,6 +302,11 @@ class PublicGitRepository extends Component
             $this->authorize('create', Application::class);
 
             $this->validate();
+            $this->availEnsureBuildPackAllowed($this->build_pack);
+            if ($this->availBranches !== [] && ! in_array($this->git_branch, $this->availBranches, true)) {
+                throw new \RuntimeException("Branch {$this->git_branch} doesn't exist in this repository.");
+            }
+            $setupVariables = $this->availParsedSetupEnvironment();
 
             // Additional validation for git repository and branch
             if ($this->git_source === 'other') {
@@ -336,6 +379,7 @@ class PublicGitRepository extends Component
                 $application_init['base_directory'] = $this->base_directory;
             }
             $application = new Application($application_init);
+            $this->availApplySetupCommands($application);
             $application->save();
 
             $application->settings->is_static = $this->isStatic;
@@ -343,8 +387,9 @@ class PublicGitRepository extends Component
             $fqdn = generateUrl(server: $destination->server, random: $application->uuid);
             $application->fqdn = $fqdn;
             $application->save();
+            $this->availCreateSetupEnvironment($application, $setupVariables);
 
-            return availRedirectAfterApplicationCreated($application, [
+            return $this->availFinishCreate($application, [
                 'application_uuid' => $application->uuid,
                 'environment_uuid' => $environment->uuid,
                 'project_uuid' => $project->uuid,

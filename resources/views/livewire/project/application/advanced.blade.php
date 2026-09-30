@@ -1,6 +1,7 @@
 <div>
     @php
         $canUpdate = auth()->user()->can('update', $application);
+        $canConfigure = auth()->user()->can('configure', $application);
         $labelsManagedByCoolify = $application->settings->is_container_label_readonly_enabled;
         // Use model UUIDs: Livewire update requests do not carry page route params.
         $generalRouteParameters = [
@@ -19,19 +20,19 @@
                     :options="[
                         ['value' => false, 'label' => 'Use Docker build cache'],
                         ['value' => true, 'label' => 'Rebuild from scratch every time'],
-                    ]" :disabled="! $canUpdate" />
+                    ]" :disabled="! $canConfigure" />
                 <x-forms.listbox id="injectBuildArgsToDockerfile" label="Build arguments" onChange="instantSave"
                     helper="When injected automatically, Coolify adds ARG statements to your Dockerfile for build-time variables. Manage them manually to preserve Docker build cache."
                     :options="[
                         ['value' => true, 'label' => 'Inject build args automatically'],
                         ['value' => false, 'label' => 'Managed manually in Dockerfile'],
-                    ]" :disabled="! $canUpdate" />
+                    ]" :disabled="! $canConfigure" />
                 <x-forms.listbox id="includeSourceCommitInBuild" label="Source commit availability" onChange="instantSave"
                     helper="SOURCE_COMMIT (git commit hash) is always available at runtime. Making it available during build invalidates the cache on every commit."
                     :options="[
                         ['value' => false, 'label' => 'Runtime only (preserves cache)'],
                         ['value' => true, 'label' => 'Available during build'],
-                    ]" :disabled="! $canUpdate" />
+                    ]" :disabled="! $canConfigure" />
             </div>
         </x-application.settings-section>
 
@@ -73,7 +74,7 @@
                         :options="[
                             ['value' => true, 'label' => 'Deploy on push (webhooks)'],
                             ['value' => false, 'label' => 'Manual deployments only'],
-                        ]" :disabled="! $canUpdate" />
+                        ]" :disabled="! $canConfigure" />
                 </div>
             </x-application.settings-section>
 
@@ -85,19 +86,19 @@
                         :options="[
                             ['value' => true, 'label' => 'Clone submodules'],
                             ['value' => false, 'label' => 'Skip submodules'],
-                        ]" :disabled="! $canUpdate" />
+                        ]" :disabled="! $canConfigure" />
                     <x-forms.listbox id="isGitLfsEnabled" label="Git LFS" onChange="instantSave"
                         helper="Allow Git LFS during the build process."
                         :options="[
                             ['value' => true, 'label' => 'Enabled'],
                             ['value' => false, 'label' => 'Disabled'],
-                        ]" :disabled="! $canUpdate" />
+                        ]" :disabled="! $canConfigure" />
                     <x-forms.listbox id="isGitShallowCloneEnabled" label="Clone depth" onChange="instantSave"
                         helper="Shallow cloning (--depth=1) speeds up deployments by only fetching the latest commit, useful for large repositories."
                         :options="[
                             ['value' => false, 'label' => 'Full history'],
                             ['value' => true, 'label' => 'Shallow clone (latest commit only)'],
-                        ]" :disabled="! $canUpdate" />
+                        ]" :disabled="! $canConfigure" />
                 </div>
             </x-application.settings-section>
         @endif
@@ -131,13 +132,13 @@
                         :options="[
                             ['value' => true, 'label' => 'Enabled'],
                             ['value' => false, 'label' => 'Disabled'],
-                        ]" :disabled="! $canUpdate" />
+                        ]" :disabled="! $canConfigure" />
                     <x-forms.listbox id="isStripprefixEnabled" label="Path prefixes" onChange="instantSave"
                         helper="Strip Prefix removes prefixes from paths, like /api/ to /."
                         :options="[
                             ['value' => true, 'label' => 'Strip prefixes'],
                             ['value' => false, 'label' => 'Keep paths as-is'],
-                        ]" :disabled="! $canUpdate" />
+                        ]" :disabled="! $canConfigure" />
                 </div>
             @else
                 <x-empty size="sm" title="Proxy behavior is managed through labels"

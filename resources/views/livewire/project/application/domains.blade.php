@@ -100,7 +100,7 @@
                         class="input h-8! w-full pl-8! text-[13px]!" placeholder="Search services or domains" />
                 </div>
             @endif
-            @can('update', $application)
+            @can('configure', $application)
                 <x-forms.button wire:click="checkAllDns" :showLoadingIndicator="false" wire:loading.attr="disabled" wire:target="checkAllDns,checkDomainDns">
                     <x-reicon name="refresh" class="size-3.5" />
                     Check all DNS
@@ -111,7 +111,7 @@
                 @unless ($labelsAreWritable)
                     @if (! $isCompose || count($composeServices) > 0)
                         <x-modal-input title="Add domain" :closeOutside="false" :wireIgnore="false"
-                            canGate="update" :canResource="$application">
+                            canGate="configure" :canResource="$application">
                             <x-slot:content>
                                 <button type="button"
                                     class="button button-highlighted">
@@ -121,12 +121,12 @@
                             </x-slot:content>
                             <form wire:submit="addDomain" class="application-settings-form flex flex-col gap-4">
                                 @if ($isCompose && count($composeServices) > 0)
-                                    <x-forms.listbox canGate="update" :canResource="$application" label="Service" id="newDomainService" required
+                                    <x-forms.listbox canGate="configure" :canResource="$application" label="Service" id="newDomainService" required
                                         :options="collect($composeServices)->map(fn ($serviceName) => [
                                             'value' => $serviceName,
                                             'label' => $serviceName,
                                         ])->values()->all()"
-                                        :disabled="! auth()->user()->can('update', $application)" />
+                                        :disabled="! auth()->user()->can('configure', $application)" />
                                 @endif
 
                                 <x-forms.domain-input id="newDomainParts" errorId="newDomain" />
@@ -171,12 +171,12 @@
             <label for="isForceHttpsEnabled-trigger" class="mb-0! text-[12px]!">Redirect HTTP to HTTPS</label>
             <x-helper helper="Disable only when Cloudflare Tunnel or another proxy connects to Coolify over HTTP. Keep enabled when Cloudflare uses Full or Full (Strict) SSL." />
             <div class="w-28 shrink-0">
-                <x-forms.listbox canGate="update" :canResource="$application" id="isForceHttpsEnabled"
+                <x-forms.listbox canGate="configure" :canResource="$application" id="isForceHttpsEnabled"
                     onChange="updateForceHttps" portal
                     :options="[
                         ['value' => true, 'label' => 'Enabled'],
                         ['value' => false, 'label' => 'Disabled'],
-                    ]" :disabled="! auth()->user()->can('update', $application)" />
+                    ]" :disabled="! auth()->user()->can('configure', $application)" />
             </div>
         </div>
     @endif
@@ -341,7 +341,7 @@
                                 @endif
 
                                 @unless ($labelsAreWritable)
-                                    @can('update', $application)
+                                    @can('configure', $application)
                                         <div
                                             class="grid grid-cols-1 gap-4 border-t border-neutral-200 pt-4 sm:grid-cols-2 dark:border-white/10">
                                         <x-forms.listbox id="editingIndexing"
@@ -420,11 +420,11 @@
                             </x-callout>
 
                             <div class="mt-4 flex flex-wrap justify-end gap-2 border-t border-neutral-200 pt-4 dark:border-white/[0.08]">
-                                <x-forms.button type="button" canGate="update" :canResource="$application"
+                                <x-forms.button type="button" canGate="configure" :canResource="$application"
                                     @click="modalOpen = false; $wire.call('cancelUseUnknownPort')">
                                     Cancel
                                 </x-forms.button>
-                                <x-forms.button type="button" wire:click="confirmUseUnknownPort" canGate="update"
+                                <x-forms.button type="button" wire:click="confirmUseUnknownPort" canGate="configure"
                                     :canResource="$application"
                                     @click="modalOpen = false" isError>
                                     Use this port anyway
