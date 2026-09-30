@@ -3,6 +3,7 @@
 namespace App\Livewire\Dashboard;
 
 use App\Enums\ApplicationDeploymentStatus;
+use App\Models\Application;
 use App\Models\ApplicationDeploymentQueue;
 use App\Models\Server;
 use Illuminate\Support\Collection;
@@ -38,9 +39,9 @@ class ActiveDeployments extends Component
         ];
 
         $baseQuery = ApplicationDeploymentQueue::query()
-            ->with(['application.environment.project'])
+            ->with(['application.environment.project', 'application.availCreator:id,name,email'])
             ->whereIn('server_id', $serverIds)
-            ->when(availIsGuest(), fn ($query) => $query->whereIn('application_id', \App\Models\Application::ownedByCurrentTeam()->pluck('applications.id')));
+            ->when(availIsGuest(), fn ($query) => $query->whereIn('application_id', Application::ownedByCurrentTeam()->pluck('applications.id')));
 
         $this->activeDeployments = (clone $baseQuery)
             ->whereIn('status', [
