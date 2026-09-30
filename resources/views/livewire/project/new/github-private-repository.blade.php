@@ -178,7 +178,7 @@
                             <h2>Build configuration</h2>
                             <p>Choose the branch and build strategy for this application.</p>
                         </div>
-                        <x-forms.button type="submit" wire:target="submit" isHighlighted>Continue</x-forms.button>
+                        <x-forms.button type="submit" wire:target="submit" isHighlighted>{{ $deployAfterCreate ? 'Deploy' : 'Create' }}</x-forms.button>
                     </div>
                     <div class="application-settings-section-body space-y-5">
                         <div class="grid gap-4 sm:grid-cols-2">
@@ -188,13 +188,13 @@
                                     'value' => data_get($branch, 'name'),
                                     'label' => data_get($branch, 'name'),
                                 ])->values()->all()" />
-                            <x-forms.listbox id="build_pack" label="Build pack" required live :options="[
+                            <x-forms.listbox id="build_pack" label="Build pack" required live :options="array_values(array_filter([
                                 ['value' => 'railpack', 'label' => 'Railpack'],
                                 ['value' => 'nixpacks', 'label' => 'Nixpacks'],
-                                ['value' => 'static', 'label' => 'Static'],
+                                ['value' => 'static', 'label' => 'Static (serves files as they are, no build)'],
                                 ['value' => 'dockerfile', 'label' => 'Dockerfile'],
-                                ['value' => 'dockercompose', 'label' => 'Docker Compose'],
-                            ]" />
+                                auth()->user()?->can('createAnyResource') ? ['value' => 'dockercompose', 'label' => 'Docker Compose'] : null,
+                            ]))" />
                             @if ($show_is_static)
                                 <x-forms.listbox id="is_static" label="Output type" onChange="instantSave"
                                     :options="[
@@ -236,7 +236,8 @@
                             </div>
                         @else
                             <x-forms.input wire:model="base_directory" label="Base directory"
-                                helper="Repository directory used as the build root." />
+                                helper="Repository directory used as the build root, for example /apps/web in a monorepo." />
+                            @include('livewire.project.new.partials.avail-setup', ['buildPack' => $build_pack])
                         @endif
                     </div>
                 </section>

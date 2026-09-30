@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Project\New;
 
+use App\Livewire\Project\New\Concerns\AvailAppSetup;
 use App\Models\Application;
 use App\Models\GithubApp;
 use App\Models\Project;
@@ -17,6 +18,7 @@ use Livewire\Component;
 class GithubPrivateRepository extends Component
 {
     use AuthorizesRequests;
+    use AvailAppSetup;
 
     public $current_step = 'github_apps';
 
@@ -278,6 +280,9 @@ class GithubPrivateRepository extends Component
             }
 
             $this->ensureMemberUsesGithubConnect();
+            $this->validate($this->availSetupRules());
+            $this->availEnsureBuildPackAllowed($this->build_pack);
+            $setupVariables = $this->availParsedSetupEnvironment();
 
             // Avail: re-check write access server-side; the picker list alone is not trusted.
             if (GithubConnect::isPlatformSource($this->github_app)
@@ -311,6 +316,7 @@ class GithubPrivateRepository extends Component
                 'source_id' => $this->github_app->id,
                 'source_type' => $this->github_app->getMorphClass(),
             ]);
+            $this->availApplySetupCommands($application);
             $application->save();
             $application->settings->is_static = $this->is_static;
             $application->settings->save();
@@ -326,8 +332,9 @@ class GithubPrivateRepository extends Component
 
             $application->name = generate_application_name($this->selected_repository_owner.'/'.$this->selected_repository_repo, $this->selected_branch_name, $application->uuid);
             $application->save();
+            $this->availCreateSetupEnvironment($application, $setupVariables);
 
-            return availRedirectAfterApplicationCreated($application, [
+            return $this->availFinishCreate($application, [
                 'application_uuid' => $application->uuid,
                 'environment_uuid' => $environment->uuid,
                 'project_uuid' => $project->uuid,
