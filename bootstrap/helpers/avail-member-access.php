@@ -181,18 +181,32 @@ function availGuardApplicationChanges(\App\Models\Application $application): voi
     if ($blocked !== []) {
         $names = collect($blocked)->map(fn ($field) => str($field)->replace('_', ' ')->lower())->unique()->join(', ');
 
+        availDiscardApplicationChanges($application);
         throw new \RuntimeException("Only admins can change: {$names}.");
     }
 
     if ($application->isDirty('build_pack') && ! in_array($application->build_pack, availMemberBuildPacks(), true)) {
+        availDiscardApplicationChanges($application);
         throw new \RuntimeException('Only admins can use this build pack. Choose Railpack, Nixpacks, Static or Dockerfile.');
     }
 
     if ($application->isDirty('fqdn')) {
         $error = availMemberDomainError($application, $application->fqdn);
         if ($error !== null) {
+            availDiscardApplicationChanges($application);
             throw new \RuntimeException($error);
         }
+    }
+}
+
+/**
+ * Avail: drop refused, unsaved changes so the next (valid) save isn't refused again.
+ */
+function availDiscardApplicationChanges(\App\Models\Application $application): void
+{
+    if ($application->exists) {
+        $application->refresh();
+        $application->settings?->refresh();
     }
 }
 
