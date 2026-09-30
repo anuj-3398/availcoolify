@@ -8,9 +8,11 @@ use App\Models\Application;
 test('every application creation flow hands off to the auto-deploy redirect', function (string $component) {
     $source = file_get_contents(app_path("Livewire/Project/New/{$component}.php"));
 
-    expect($source)
-        ->toContain('availRedirectAfterApplicationCreated($application, [')
-        ->not->toContain("'project.application.configuration'");
+    // The Git flows go through AvailAppSetup::availFinishCreate(), which auto-deploys unless
+    // "Deploy right away" is unticked.
+    expect(str_contains($source, 'availRedirectAfterApplicationCreated($application, [')
+        || str_contains($source, '$this->availFinishCreate($application, ['))->toBeTrue()
+        ->and($source)->not->toContain("'project.application.configuration'");
 })->with([
     'PublicGitRepository',
     'GithubPrivateRepository',
@@ -19,6 +21,13 @@ test('every application creation flow hands off to the auto-deploy redirect', fu
     'SimpleDockerfile',
     'DockerImage',
 ]);
+
+test('the shared Git setup step auto-deploys by default', function () {
+    $source = file_get_contents(app_path('Livewire/Project/New/Concerns/AvailAppSetup.php'));
+
+    expect($source)->toContain('public bool $deployAfterCreate = true;')
+        ->and($source)->toContain('return availRedirectAfterApplicationCreated($application, $parameters);');
+});
 
 test('new standalone databases are started right after creation', function () {
     $source = file_get_contents(app_path('Livewire/Project/Resource/Create.php'));

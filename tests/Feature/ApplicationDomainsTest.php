@@ -1332,6 +1332,8 @@ it('marks dns status as skipped when dns validation is disabled', function () {
 
 it('prevents members from running dns check actions', function (string $action, array $parameters) {
     $this->team->members()->updateExistingPivot($this->user->id, ['role' => 'member']);
+    // Avail: members configure the apps they created; this app is someone else's.
+    $this->application->forceFill(['avail_created_by_user_id' => null])->save();
     $this->actingAs($this->user->fresh());
     $this->application->update([
         'fqdn' => 'https://app.example.com',
@@ -1350,6 +1352,8 @@ it('prevents members from running dns check actions', function (string $action, 
 
 it('hides dns check buttons from members', function () {
     $this->team->members()->updateExistingPivot($this->user->id, ['role' => 'member']);
+    // Avail: members configure the apps they created; this app is someone else's.
+    $this->application->forceFill(['avail_created_by_user_id' => null])->save();
     $this->actingAs($this->user->fresh());
     $this->application->update(['fqdn' => 'https://app.example.com']);
 
@@ -3443,6 +3447,8 @@ it('keeps the selected application domain when removing an earlier row', functio
 
 it('prevents members from cancelling protected application redirect conflict state', function () {
     $this->team->members()->updateExistingPivot($this->user->id, ['role' => 'member']);
+    // Avail: members configure the apps they created; this app is someone else's.
+    $this->application->forceFill(['avail_created_by_user_id' => null])->save();
     $this->actingAs($this->user->fresh());
 
     Livewire::test(Domains::class, ['application' => $this->application->fresh()])
