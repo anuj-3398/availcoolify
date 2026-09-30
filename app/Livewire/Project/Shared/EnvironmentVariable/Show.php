@@ -263,6 +263,9 @@ class Show extends Component
         if ($this->env->is_shown_once || $this->valuesHiddenForUser()) {
             $this->value = null;
             $this->real_value = null;
+        } elseif (! availIsAdminOfResource(auth()->user(), $this->env->resourceable)) {
+            // Avail: a member sees their own values, never what a shared-variable reference resolves to.
+            $this->real_value = null;
         }
 
         $this->isValueHidden = $this->valuesHiddenForUser();
@@ -270,7 +273,8 @@ class Show extends Component
 
     private function valuesHiddenForUser(): bool
     {
-        return auth()->user()?->cannot('update', $this->env) ?? true;
+        // Avail: members also see no values on resources they did not create.
+        return (auth()->user()?->cannot('update', $this->env) ?? true) || availHidesEnvValues($this->env->resourceable);
     }
 
     public function checkEnvs()
@@ -317,6 +321,13 @@ class Show extends Component
         try {
             $this->authorize('update', $this->env);
             $this->loadValues();
+
+            if ($this->value !== $this->env->value && availReferencesSharedVariables($this->value)
+                && ! availIsAdminOfResource(auth()->user(), $this->env->resourceable)) {
+                $this->dispatch('error', availSharedReferenceError());
+
+                return;
+            }
 
             if (! $this->isSharedVariable && $this->is_required && str($this->value)->isEmpty()) {
                 $oldValue = $this->env->getOriginal('value');
