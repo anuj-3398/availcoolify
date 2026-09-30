@@ -109,14 +109,15 @@ it('declares update authorization on service backup mutation controls', function
         ->toMatch('/<x-forms\.button(?=[^>]*wire:click\.stop="backupNow\(\'storage\',[^"]+")(?=[^>]*canGate="update")(?=[^>]*:canResource="\$service")[^>]*>/');
 });
 
+// Avail: domain and port controls use the "configure" ability (admins, plus the member who created the app).
 it('declares update authorization on application port controls', function () {
     $domainsView = file_get_contents(resource_path('views/livewire/project/application/domains.blade.php'));
     $previewDomainsView = file_get_contents(resource_path('views/livewire/project/application/preview-domains.blade.php'));
     $generalView = file_get_contents(resource_path('views/livewire/project/application/general.blade.php'));
 
     expect($domainsView)
-        ->toMatch('/<x-forms\.button(?=[^>]*canGate="update")(?=[^>]*:canResource="\$application")[^>]*>\s*Cancel/s')
-        ->toMatch('/<x-forms\.button(?=[^>]*wire:click="confirmUseUnknownPort")(?=[^>]*canGate="update")(?=[^>]*:canResource="\$application")[^>]*>/s');
+        ->toMatch('/<x-forms\.button(?=[^>]*canGate="configure")(?=[^>]*:canResource="\$application")[^>]*>\s*Cancel/s')
+        ->toMatch('/<x-forms\.button(?=[^>]*wire:click="confirmUseUnknownPort")(?=[^>]*canGate="configure")(?=[^>]*:canResource="\$application")[^>]*>/s');
 
     expect($previewDomainsView)
         ->toMatch('/<x-forms\.button[^\n]*canGate="update" :canResource="\$preview->application"[\s\S]{0,150}?Cancel/')
@@ -127,7 +128,7 @@ it('declares update authorization on application port controls', function () {
         ->before('<p class="mt-1.5 text-xs');
 
     expect($portsExposesControls->substrCount('id="portsExposes"'))->toBe(3)
-        ->and($portsExposesControls->substrCount('canGate="update" :canResource="$application"'))->toBe(3);
+        ->and($portsExposesControls->substrCount('canGate="configure" :canResource="$application"'))->toBe(3);
 });
 
 it('keeps mutable Livewire components behind authorization checks', function (string $path, array $requiredNeedles) {
