@@ -13,14 +13,14 @@ Anyone else (partners, contractors, auditors) needs an invitation from an admin.
 ![Sign-in page with the Login with Clerk button](/images/developer-guide/login.jpg)
 
 1. Open [coolify.avail.tools](https://coolify.avail.tools) and click **Login with Clerk**. You always get a fresh sign-in screen, so pick the right account.
-2. You land on the dashboard of **Avail Team**: projects first, then recent deployments (the latest one per app).
+2. You land on the dashboard of **Avail Team**: projects first, then recent deployments (the latest one per app). Guests see only the projects shared with them.
 3. Need more than a member can do? Ask the Owner or an admin to change your role under **Team → Members**.
 
 ![Dashboard with projects and recent deployments](/images/developer-guide/dashboard.jpg)
 
 | Role | Can do |
 | --- | --- |
-| Guest | View only the projects an admin shared with them: their apps, deployments and build logs. Read-only, and usually time-limited (30 days by default) |
+| Guest | View only the projects an admin shared with them: their apps, deployments and build logs. Read-only, no API access, and usually time-limited (30 days by default) |
 | Member | View apps, deployments and build logs; create apps (public repo, your own GitHub repos, Dockerfile, image); deploy, redeploy, restart, stop and roll back apps; runtime logs and delete for apps you created |
 | Admin | Everything a member can, plus app settings, env vars, web terminal, databases, services, projects and environments, and managing team members |
 | Owner | Everything an admin can, plus creating teams and upgrading the platform |
@@ -55,7 +55,7 @@ Every app lives in a project and environment, e.g. **Avail Project → staging**
 
 ## Preview deployments
 
-Every pull request gets its own private preview URL, behind a Clerk login that only lets members of the team in.
+Every pull request gets its own private preview URL, behind a Clerk login that only lets members of the team in (and guests who have that project).
 
 1. **Open a PR** against the app's repo. AvailCoolify builds the PR branch, comments on the PR with the preview link, and adds an **AvailCoolify preview** check that turns green ("Preview ready") when it's up.
 2. **Preview URL:** `https://<PR number>.<app>.apps.avail.tools`, e.g. PR 7 → `7.nexus-fast-bridge.apps.avail.tools`.
@@ -72,7 +72,7 @@ Whether an app's own URL needs a Clerk login is decided by its environment, not 
 
 | Environment | Switch | Result |
 | --- | --- | --- |
-| `staging`, `preview-test` | On | Every app in it needs a Clerk login from a team member |
+| `staging`, `preview-test` | On | Every app in it needs a Clerk login from a team member, or a guest who has that project |
 | `production` | Off | Apps are public |
 
 PR previews need a Clerk login in every environment. A switch change reaches an app on its next deploy.
@@ -96,7 +96,7 @@ Test in staging first, then copy the app to production.
 
 Everyone who signs in with Clerk with an @availproject.org email joins Avail Team automatically. Admins invite everyone else by email address:
 
-![Invite a member: email address, role and Generate Link](/images/developer-guide/invite.jpg)
+![Invite a member: email address, role (Guest by default), access duration, projects and Generate Link](/images/developer-guide/invite.jpg)
 
 1. **Team → Members → Invite a member**: enter the email address and pick a role. The role starts as **Guest**.
 2. For a guest, pick how long access lasts (30, 60 or 90 days, a custom end date, or no expiry) and tick the projects they may see. The time starts when they accept.
@@ -127,7 +127,7 @@ Set variables per app under **app → Environment Variables**; they apply on the
 Start with the deployment log for build problems and **Runtime Logs** for problems while the app runs.
 
 - **Deployment log:** app → **Deployment Logs** → pick the run.
-- **Runtime logs:** app → **Runtime Logs**. Live stdout/stderr of the running app. They can contain secrets, so members only see them for apps they created; admins see all.
+- **Runtime logs:** app → **Runtime Logs**. Live stdout/stderr of the running app. They can contain secrets, so members only see them for apps they created; admins see all. Guests see deployment logs only.
 - **Web terminal:** app → **Terminal** opens a shell inside the container (Admin role).
 
 | Symptom | Likely cause | Fix |
