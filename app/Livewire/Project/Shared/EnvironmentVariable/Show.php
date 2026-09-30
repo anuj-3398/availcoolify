@@ -174,7 +174,7 @@ class Show extends Component
 
     public function copyValue(): ?string
     {
-        if ($this->env->is_shown_once || (auth()->user()?->isMember() ?? true)) {
+        if ($this->env->is_shown_once || availHidesEnvValues($this->env->resourceable)) {
             return null;
         }
 
@@ -231,7 +231,7 @@ class Show extends Component
             $this->is_required = (bool) ($this->env->is_required ?? false);
             // Use the stored column, not the value-based accessor (that decrypts).
             $this->is_shared = (bool) ($this->env->getAttributes()['is_shared'] ?? false);
-            $this->isValueHidden = auth()->user()?->isMember() ?? true;
+            $this->isValueHidden = availHidesEnvValues($this->env->resourceable);
 
             if ($this->valuesLoaded) {
                 $this->hydrateValueFields();
@@ -258,12 +258,15 @@ class Show extends Component
             $this->is_really_required = $this->is_required && blank($this->value);
         }
 
-        if ($this->env->is_shown_once || (auth()->user()?->isMember() ?? true)) {
+        if ($this->env->is_shown_once || availHidesEnvValues($this->env->resourceable)) {
             $this->value = null;
+            $this->real_value = null;
+        } elseif (! availIsAdminOfResource(auth()->user(), $this->env->resourceable)) {
+            // Avail: a member sees their own values, never what a shared-variable reference resolves to.
             $this->real_value = null;
         }
 
-        $this->isValueHidden = auth()->user()?->isMember() ?? true;
+        $this->isValueHidden = availHidesEnvValues($this->env->resourceable);
     }
 
     public function checkEnvs()
@@ -310,6 +313,13 @@ class Show extends Component
         try {
             $this->authorize('update', $this->env);
             $this->loadValues();
+
+            if ($this->value !== $this->env->value && availReferencesSharedVariables($this->value)
+                && ! availIsAdminOfResource(auth()->user(), $this->env->resourceable)) {
+                $this->dispatch('error', availSharedReferenceError());
+
+                return;
+            }
 
             if (! $this->isSharedVariable && $this->is_required && str($this->value)->isEmpty()) {
                 $oldValue = $this->env->getOriginal('value');
