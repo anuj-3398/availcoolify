@@ -127,6 +127,13 @@ class EnvironmentVariable extends BaseModel
         });
 
         static::saving(function (ModelsEnvironmentVariable $environmentVariable) {
+            // Avail: only admins may pull shared (team/project/environment/server) secrets into a resource.
+            $user = auth()->user();
+            if ($user && $environmentVariable->isDirty('value')
+                && availReferencesSharedVariables($environmentVariable->value)
+                && ! availIsAdminOfResource($user, $environmentVariable->resourceable)) {
+                throw new \RuntimeException(availSharedReferenceError());
+            }
             $environmentVariable->updateIsShared();
         });
     }
