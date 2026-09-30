@@ -21,7 +21,7 @@ Anyone else (partners, contractors, auditors) needs an invitation from an admin.
 | Role | Can do |
 | --- | --- |
 | Guest | View only the projects an admin shared with them: their apps, deployments and build logs. Read-only, no API access, and usually time-limited (30 days by default) |
-| Member | View apps, deployments and build logs; create apps (public repo, your own GitHub repos, Dockerfile, image); deploy, redeploy, restart, stop and roll back apps; runtime logs and delete for apps you created |
+| Member | View apps, deployments and build logs; create apps (public repo, your own GitHub repos, Dockerfile, image); deploy, redeploy, restart, stop and roll back apps; runtime logs, environment variables and delete for apps you created |
 | Admin | Everything a member can, plus app settings, env vars, web terminal, databases, services, projects and environments, and managing team members |
 | Owner | Everything an admin can, plus creating teams and upgrading the platform |
 
@@ -109,7 +109,7 @@ Everyone who signs in with Clerk with an @availproject.org email joins Avail Tea
 
 ## Environment variables and secrets
 
-Set variables per app under **app → Environment Variables**; they apply on the next deploy, not to the running container. Changing variables needs the Admin role.
+Set variables per app under **app → Environment Variables**; they apply on the next deploy, not to the running container. You can add, change and delete the variables of apps you created (for example an API key your app needs), and see their values; other apps' variables need the Admin role.
 
 | Option | What it does |
 | --- | --- |
@@ -118,7 +118,7 @@ Set variables per app under **app → Environment Variables**; they apply on the
 | Build secrets | Passed to the build as secrets, not left in the image |
 | Preview deployments | Separate values used only by PR previews, e.g. a staging API key |
 
-- **Shared variables:** define a value once under **Shared Variables** at team, project or environment level. Reference it in an app as `{{team.KEY}}`, `{{project.KEY}}` or `{{environment.KEY}}` instead of pasting the secret into every app.
+- **Shared variables:** an admin defines a value once under **Shared Variables** at team, project or environment level and references it in an app as `{{team.KEY}}`, `{{project.KEY}}` or `{{environment.KEY}}` instead of pasting the secret into every app. Only admins can add such references; ask one if your app needs a shared value.
 - **Previews:** give previews their own values (test databases, sandbox keys) so a PR never writes to production data.
 - **Never commit secrets** to the repo; keep them here.
 

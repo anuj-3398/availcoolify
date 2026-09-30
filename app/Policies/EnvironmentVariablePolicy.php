@@ -40,7 +40,7 @@ class EnvironmentVariablePolicy
     {
         $teamId = $this->getTeamId($environmentVariable);
 
-        return $teamId !== null && $user->isAdminOfTeam($teamId);
+        return $teamId !== null && ($user->isAdminOfTeam($teamId) || availOwnsApplication($user, $environmentVariable->resourceable));
     }
 
     /**
@@ -50,7 +50,7 @@ class EnvironmentVariablePolicy
     {
         $teamId = $this->getTeamId($environmentVariable);
 
-        return $teamId !== null && $user->isAdminOfTeam($teamId);
+        return $teamId !== null && ($user->isAdminOfTeam($teamId) || availOwnsApplication($user, $environmentVariable->resourceable));
     }
 
     /**
@@ -76,7 +76,7 @@ class EnvironmentVariablePolicy
     {
         $teamId = $this->getTeamId($environmentVariable);
 
-        return $teamId !== null && $user->isAdminOfTeam($teamId);
+        return $teamId !== null && ($user->isAdminOfTeam($teamId) || availOwnsApplication($user, $environmentVariable->resourceable));
     }
 
     private function getTeamId(EnvironmentVariable $environmentVariable): ?int

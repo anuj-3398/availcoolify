@@ -221,7 +221,7 @@ class All extends Component
 
     private function nullLockedValues($envs)
     {
-        $isMember = auth()->user()?->isMember();
+        $isMember = availHidesEnvValues($this->resource);
 
         $envs->each(function ($env) use ($isMember) {
             if ($env->is_shown_once || $isMember) {
@@ -828,7 +828,7 @@ class All extends Component
 
     private function formatEnvironmentVariables($variables)
     {
-        $isMember = auth()->user()?->isMember();
+        $isMember = availHidesEnvValues($this->resource);
 
         return $variables
             ->reject(fn ($item): bool => $this->isProtectedEnvironmentVariable($item->key))
@@ -861,6 +861,11 @@ class All extends Component
         try {
             $this->authorize('manageEnvironment', $this->resource);
             $this->ensureEnvironmentVariablesLoaded();
+            if (! availIsAdminOfResource(auth()->user(), $this->resource) && $this->submissionReferencesSharedVariables($data)) {
+                $this->dispatch('error', availSharedReferenceError());
+
+                return;
+            }
             if ($data === null) {
                 $this->handleBulkSubmit();
             } else {
@@ -910,6 +915,32 @@ class All extends Component
                 $order++;
             }
         }
+    }
+
+    /**
+     * Avail: whether a single add or a bulk edit uses {{team.X}}-style shared variables.
+     */
+    private function submissionReferencesSharedVariables($data): bool
+    {
+        if ($data !== null) {
+            return availReferencesSharedVariables($data['value'] ?? null);
+        }
+        $texts = ['environment_variables' => $this->variables];
+        if ($this->showPreview) {
+            $texts['environment_variables_preview'] = $this->variablesPreview;
+        }
+        foreach ($texts as $relation => $text) {
+            // Unchanged values (e.g. a reference an admin set) may stay; only new or changed ones count.
+            $existing = $this->resource->$relation()->get()->mapWithKeys(fn ($env) => [$env->key => $env->value]);
+            foreach (parseEnvFormatToArray((string) $text) as $key => $entry) {
+                $value = is_array($entry) ? ($entry['value'] ?? null) : $entry;
+                if (availReferencesSharedVariables($value) && $existing->get($key) !== $value) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private function handleBulkSubmit()
