@@ -112,12 +112,15 @@
             @if (!$application->dockerfile && $application->build_pack !== 'dockerimage')
                 <div class="application-build-pack-options mb-5 border-b border-neutral-200 pb-5 dark:border-white/[0.07]">
                     <div class="grid gap-4 sm:grid-cols-2">
+                        @php
+                            $availOffersCompose = auth()->user()->can('update', $application) || $buildPack === 'dockercompose';
+                        @endphp
                         <x-forms.listbox id="buildPack" label="Build strategy" live :options="array_values(array_filter([
                             ['value' => 'railpack', 'label' => 'Railpack'],
                             ['value' => 'nixpacks', 'label' => 'Nixpacks'],
                             ['value' => 'static', 'label' => 'Static (serves files as they are, no build)'],
                             ['value' => 'dockerfile', 'label' => 'Dockerfile'],
-                            auth()->user()->can('update', $application) || $buildPack === 'dockercompose' ? ['value' => 'dockercompose', 'label' => 'Compose'] : null,
+                            $availOffersCompose ? ['value' => 'dockercompose', 'label' => 'Compose'] : null,
                         ]))" x-bind:disabled="shouldDisableBasic()" />
                         @if ($isStatic || $buildPack === 'static')
                             <x-forms.listbox id="staticImage" label="Web server" required :options="[
@@ -511,18 +514,18 @@
                     @if ($isStatic || $buildPack === 'static')
                         <x-forms.input id="portsExposes" label="Ports exposes" readonly
                             :helper="$portsExposesDomainHint"
-                            canGate="update" :canResource="$application"
+                            canGate="configure" :canResource="$application"
                             x-bind:disabled="!canConfigure" />
                     @else
                         @if ($application->settings->is_container_label_readonly_enabled === false)
                             <x-forms.input placeholder="3000,3001" id="portsExposes" label="Ports exposes" readonly
                                 :helper="'Readonly labels are disabled. You can set the ports manually in the labels section.<br><br>'.$portsExposesDomainHint"
-                                canGate="update" :canResource="$application"
+                                canGate="configure" :canResource="$application"
                                 x-bind:disabled="!canConfigure" />
                         @else
                             <x-forms.input placeholder="3000,3001" id="portsExposes" label="Ports exposes"
                                 :helper="'A comma separated list of ports your application uses. The first port will be used as default healthcheck port if nothing defined in the Healthcheck menu. Be sure to set this correctly.<br><br>'.$portsExposesDomainHint"
-                                canGate="update" :canResource="$application"
+                                canGate="configure" :canResource="$application"
                                 x-bind:disabled="!canConfigure" />
                         @endif
                     @endif
