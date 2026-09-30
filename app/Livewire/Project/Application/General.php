@@ -312,7 +312,7 @@ class General extends Component
         if ($this->application->build_pack === 'dockercompose') {
             // Only update if user has permission
             try {
-                $this->authorize('update', $this->application);
+                $this->authorize('configure', $this->application);
                 $this->application->fqdn = null;
                 $this->application->settings->save();
             } catch (AuthorizationException $e) {
@@ -327,7 +327,7 @@ class General extends Component
         if (! $this->customLabels && $this->application->destination->server->proxyType() !== 'NONE' && $this->application->settings->is_container_label_readonly_enabled === true) {
             // Only update custom labels if user has permission
             try {
-                $this->authorize('update', $this->application);
+                $this->authorize('configure', $this->application);
                 $this->customLabels = str(implode('|coolify|', generateLabelsApplication($this->application)))->replace('|coolify|', "\n");
                 $this->application->custom_labels = base64_encode($this->customLabels);
                 $this->application->save();
@@ -422,6 +422,8 @@ class General extends Component
             $this->application->settings->is_container_label_escape_enabled = $this->isContainerLabelEscapeEnabled;
             $this->application->settings->is_container_label_readonly_enabled = $this->isContainerLabelReadonlyEnabled;
 
+            // Avail: members may only change their own app's everyday settings.
+            availGuardApplicationChanges($this->application);
             $this->saveApplicationSettingsWithAudit($this->application);
         } else {
             // From model to properties
@@ -461,7 +463,7 @@ class General extends Component
             $this->customNginxConfiguration = $this->application->custom_nginx_configuration;
             $this->isHttpBasicAuthEnabled = $this->application->is_http_basic_auth_enabled;
             $this->httpBasicAuthUsername = $this->application->http_basic_auth_username;
-            $this->httpBasicAuthPassword = auth()->user()->can('update', $this->application)
+            $this->httpBasicAuthPassword = auth()->user()->can('configure', $this->application)
                 ? $this->application->http_basic_auth_password
                 : null;
             $this->authMode = $this->isHttpBasicAuthEnabled ? 'basic' : 'none';
@@ -489,7 +491,7 @@ class General extends Component
     public function instantSave()
     {
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
 
             $oldPortsExposes = $this->application->ports_exposes;
             $oldIsContainerLabelEscapeEnabled = $this->application->settings->is_container_label_escape_enabled;
@@ -621,7 +623,7 @@ class General extends Component
     {
         // Check if user has permission to update
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
         } catch (AuthorizationException $e) {
             // User doesn't have permission, revert the change and return
             $this->application->refresh();
@@ -659,7 +661,7 @@ class General extends Component
     public function getWildcardDomain()
     {
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
 
             $server = data_get($this->application, 'destination.server');
             if ($server) {
@@ -680,7 +682,7 @@ class General extends Component
     public function generateNginxConfiguration($type = 'static')
     {
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
 
             $this->customNginxConfiguration = defaultNginxConfiguration($type);
             $this->syncData(toModel: true);
@@ -695,7 +697,7 @@ class General extends Component
 
     public function resetDefaultLabels($manualReset = false)
     {
-        $this->authorize('update', $this->application);
+        $this->authorize('configure', $this->application);
 
         try {
             if (! $this->isContainerLabelReadonlyEnabled && ! $manualReset) {
@@ -761,7 +763,7 @@ class General extends Component
 
     public function setRedirect()
     {
-        $this->authorize('update', $this->application);
+        $this->authorize('configure', $this->application);
 
         try {
             $this->application->redirect = $this->redirect;
@@ -785,7 +787,7 @@ class General extends Component
     public function submit($showToaster = true)
     {
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
             $dnsCleanup = app(ManagedDnsRecordCleanup::class);
             $previousDnsHostnames = $dnsCleanup->hostnamesOf($this->application->fresh() ?? $this->application);
 

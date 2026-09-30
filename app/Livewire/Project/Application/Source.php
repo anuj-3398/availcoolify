@@ -69,12 +69,15 @@ class Source extends Component
     {
         if ($toModel) {
             $this->validate();
-            $this->application->update([
+            $this->application->fill([
                 'git_repository' => $this->gitRepository,
                 'git_branch' => $this->gitBranch,
                 'git_commit_sha' => $this->gitCommitSha,
                 'private_key_id' => $this->privateKeyId,
             ]);
+            // Avail: the member who created the app may change the branch and commit, not the repository.
+            availGuardApplicationChanges($this->application);
+            $this->application->save();
             // Refresh to get the trimmed values from the model
             $this->application->refresh();
             $this->syncData(false);
@@ -133,7 +136,7 @@ class Source extends Component
     {
 
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
             if (str($this->gitCommitSha)->isEmpty()) {
                 $this->gitCommitSha = 'HEAD';
             }

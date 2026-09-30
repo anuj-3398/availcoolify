@@ -129,6 +129,8 @@ class Advanced extends Component
             $this->application->settings->inject_build_args_to_dockerfile = $this->injectBuildArgsToDockerfile;
             $this->application->settings->include_source_commit_in_build = $this->includeSourceCommitInBuild;
             $changedFields = array_keys($this->application->settings->getDirty());
+            // Avail: members may only flip their own app's everyday switches.
+            availGuardApplicationChanges($this->application);
             $this->application->settings->save();
             $this->auditSettingsUpdate($changedFields);
         } else {
@@ -199,7 +201,7 @@ class Advanced extends Component
     public function instantSave()
     {
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
             $reset = false;
             if ($this->isLogDrainEnabled) {
                 if (! $this->application->destination->server->isLogDrainEnabled()) {
@@ -238,7 +240,7 @@ class Advanced extends Component
     public function submit()
     {
         try {
-            $this->authorize('update', $this->application);
+            $this->authorize('configure', $this->application);
             if ($this->gpuCount && $this->gpuDeviceIds) {
                 $this->dispatch('error', 'You cannot set both GPU count and GPU device IDs.');
                 $this->gpuCount = null;
@@ -330,6 +332,8 @@ class Advanced extends Component
                 ? null
                 : (int) $validated['stopGracePeriod'];
             $changedFields = array_keys($this->application->settings->getDirty());
+            // Avail: members may only flip their own app's everyday switches.
+            availGuardApplicationChanges($this->application);
             $this->application->settings->save();
             $this->auditSettingsUpdate($changedFields);
 

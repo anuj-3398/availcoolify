@@ -46,7 +46,7 @@
                         <h2>Build configuration</h2>
                         <p>Choose how Coolify builds and runs this repository.</p>
                     </div>
-                    <x-forms.button type="submit" isHighlighted>Continue</x-forms.button>
+                    <x-forms.button type="submit" isHighlighted>{{ $deployAfterCreate ? 'Deploy' : 'Create' }}</x-forms.button>
                 </div>
                 <div class="application-settings-section-body space-y-5">
                     @if ($rate_limit_remaining && $rate_limit_reset)
@@ -57,16 +57,22 @@
                     @endif
 
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <x-forms.input id="git_branch" label="Branch"
-                            :disabled="$git_source !== 'other'"
-                            helper="You can choose another branch after the application is created." />
-                        <x-forms.listbox id="build_pack" label="Build pack" required live :options="[
+                        {{-- Avail: the repository's branches, its default branch preselected. --}}
+                        @if (count($availBranches) > 0)
+                            <x-forms.searchable-listbox id="git_branch" label="Branch" required
+                                searchPlaceholder="Search branches…"
+                                :options="collect($availBranches)->map(fn ($branch) => ['value' => $branch, 'label' => $branch])->all()" />
+                        @else
+                            <x-forms.input id="git_branch" label="Branch" required
+                                helper="The branch to deploy, for example main or master." />
+                        @endif
+                        <x-forms.listbox id="build_pack" label="Build pack" required live :options="array_values(array_filter([
                             ['value' => 'railpack', 'label' => 'Railpack'],
                             ['value' => 'nixpacks', 'label' => 'Nixpacks'],
-                            ['value' => 'static', 'label' => 'Static'],
+                            ['value' => 'static', 'label' => 'Static (serves files as they are, no build)'],
                             ['value' => 'dockerfile', 'label' => 'Dockerfile'],
-                            ['value' => 'dockercompose', 'label' => 'Docker Compose'],
-                        ]" />
+                            auth()->user()?->can('createAnyResource') ? ['value' => 'dockercompose', 'label' => 'Docker Compose'] : null,
+                        ]))" />
                         @if ($show_is_static)
                             <x-forms.listbox id="isStatic" label="Output type" onChange="instantSave"
                                 :options="[
@@ -108,7 +114,8 @@
                         </div>
                     @else
                         <x-forms.input wire:model="base_directory" label="Base directory"
-                            helper="Repository directory used as the build root." />
+                            helper="Repository directory used as the build root, for example /apps/web in a monorepo." />
+                        @include('livewire.project.new.partials.avail-setup', ['buildPack' => $build_pack])
                     @endif
                 </div>
             </section>
