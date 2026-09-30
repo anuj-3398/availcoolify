@@ -1152,6 +1152,12 @@ class Application extends BaseModel
         return $this->belongsTo(Environment::class);
     }
 
+    /** Avail: the user who created the app (shown as its owner). */
+    public function availCreator()
+    {
+        return $this->belongsTo(User::class, 'avail_created_by_user_id');
+    }
+
     public function previews()
     {
         return $this->hasMany(ApplicationPreview::class)->orderBy('pull_request_id', 'desc');
