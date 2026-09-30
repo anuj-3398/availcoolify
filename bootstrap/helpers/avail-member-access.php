@@ -219,7 +219,8 @@ function availMemberDomainError(\App\Models\Application $application, ?string $f
 {
     // Read the setting fresh: relations and server settings may be cached for the request.
     $serverId = $application->destination()->value('server_id');
-    $wildcard = $serverId ? \App\Models\ServerSetting::where('server_id', $serverId)->value('wildcard_domain') : null;
+    // The built-in localhost server has id 0, so compare with null, not truthiness.
+    $wildcard = $serverId !== null ? \App\Models\ServerSetting::where('server_id', $serverId)->value('wildcard_domain') : null;
     $wildcardHost = strtolower((string) parse_url((string) $wildcard, PHP_URL_HOST));
     if ($wildcardHost === '') {
         return 'Only admins can set addresses on this server.';
