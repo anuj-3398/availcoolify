@@ -215,6 +215,20 @@ test('a refused change is dropped, so the next valid save goes through', functio
         ->and($own->fresh()->git_branch)->toBe('master');
 });
 
+test('the domain rule works on the built-in server with id 0', function () {
+    $server = Server::factory()->create(['id' => 0, 'team_id' => $this->team->id]);
+    $server->settings->forceFill(['wildcard_domain' => 'https://apps.avail.test'])->save();
+    $destination = $server->standaloneDockers()->firstOrFail();
+    $app = setupApp($this, 'own', $this->member->id, [
+        'destination_id' => $destination->id,
+        'destination_type' => $destination->getMorphClass(),
+    ]);
+    setupActAs($this->member, $this->team);
+
+    expect($app->destination()->value('server_id'))->toBe(0)
+        ->and(availMemberDomainError($app, 'https://fastbridge-shrinath.apps.avail.test'))->toBeNull();
+});
+
 test('a member may only give their app a free <name>.apps address', function () {
     setupApp($this, 'nexus', null, ['fqdn' => 'https://nexus-fast-bridge.apps.avail.test']);
     $own = setupApp($this, 'own', $this->member->id, ['fqdn' => 'https://random123.apps.avail.test']);
