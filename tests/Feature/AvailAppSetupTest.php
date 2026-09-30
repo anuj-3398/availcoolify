@@ -200,6 +200,21 @@ test('a member changes the everyday settings of their app but nothing that reach
     availGuardApplicationChanges($app);
 });
 
+test('a refused change is dropped, so the next valid save goes through', function () {
+    $own = setupApp($this, 'own', $this->member->id);
+    setupActAs($this->member, $this->team);
+
+    $own->fill(['git_repository' => 'someone/else']);
+    expect(fn () => availGuardApplicationChanges($own))->toThrow(RuntimeException::class);
+
+    $own->fill(['git_branch' => 'master']);
+    availGuardApplicationChanges($own);
+    $own->save();
+
+    expect($own->fresh()->git_repository)->toBe('availproject/nexus-fast-bridge')
+        ->and($own->fresh()->git_branch)->toBe('master');
+});
+
 test('a member may only give their app a free <name>.apps address', function () {
     setupApp($this, 'nexus', null, ['fqdn' => 'https://nexus-fast-bridge.apps.avail.test']);
     $own = setupApp($this, 'own', $this->member->id, ['fqdn' => 'https://random123.apps.avail.test']);
