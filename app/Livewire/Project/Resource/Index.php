@@ -97,6 +97,7 @@ class Index extends Component
             'tags',
             'destination.server.settings',
             'settings',
+            'availCreator:id,name,email',
         ])->get()->sortBy('name');
         $projectUuid = $this->project->uuid;
         $environmentUuid = $this->environment->uuid;
@@ -201,6 +202,7 @@ class Index extends Component
             'maxRestartCount' => $item->max_restart_count ?? 0,
             'server_status' => $item->server_status ?? null,
             'hrefLink' => $item->hrefLink ?? '',
+            'owner' => availOwnerName($item),
             'destination' => [
                 'server' => [
                     'name' => $item->destination?->server?->name ?? 'Unknown',

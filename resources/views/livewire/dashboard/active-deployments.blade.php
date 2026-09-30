@@ -46,6 +46,7 @@
                             class="dashboard-deployment-table-grid hidden items-center gap-4 border-b border-neutral-200 bg-neutral-50 px-4 py-2.5 text-[11px] font-medium text-neutral-500 md:grid dark:border-white/[0.08] dark:bg-white/[0.05] dark:text-fg-faint">
                             <span>Application</span>
                             <span>Environment</span>
+                            <span>Owner</span>
                             <span>Server</span>
                             <span>Status</span>
                             <span>Started</span>
@@ -57,6 +58,7 @@
                                 $projectName = $deployment->application?->environment?->project?->name;
                                 $environmentName = $deployment->application?->environment?->name;
                                 $environmentPath = collect([$projectName, $environmentName])->filter()->join(' / ');
+                                $ownerName = availOwnerName($deployment->application);
                             @endphp
 
                             <a wire:key="dashboard-active-deployment-{{ $deployment->deployment_uuid }}"
@@ -76,6 +78,10 @@
                                 <p class="hidden truncate text-[12px] text-neutral-500 md:block dark:text-fg-dim">
                                     {{ $environmentPath ?: '-' }}
                                 </p>
+                                <p class="hidden truncate text-[12px] text-neutral-500 md:block dark:text-fg-dim"
+                                    title="{{ $ownerName ? 'Owner: '.$ownerName : 'No owner recorded' }}">
+                                    {{ $ownerName ?: '-' }}
+                                </p>
                                 <p class="hidden truncate text-[12px] text-neutral-500 md:block dark:text-fg-dim">
                                     {{ $deployment->server_name ?: '-' }}
                                 </p>
@@ -92,6 +98,10 @@
                                         {{ $environmentPath ?: '-' }}
                                         <span class="px-1 text-neutral-300 dark:text-white/15">·</span>
                                         {{ $deployment->server_name ?: '-' }}
+                                        @if ($ownerName)
+                                            <span class="px-1 text-neutral-300 dark:text-white/15">·</span>
+                                            {{ $ownerName }}
+                                        @endif
                                     </p>
                                 </div>
                             </a>
@@ -115,6 +125,7 @@
                             class="dashboard-deployment-table-grid hidden items-center gap-4 border-b border-neutral-200 bg-neutral-50 px-4 py-2.5 text-[11px] font-medium text-neutral-500 md:grid dark:border-white/[0.08] dark:bg-white/[0.05] dark:text-fg-faint">
                             <span>Application</span>
                             <span>Environment</span>
+                            <span>Owner</span>
                             <span>Server</span>
                             <span>Status</span>
                             <span>Started</span>
@@ -126,6 +137,7 @@
                                 $projectName = $deployment->application?->environment?->project?->name;
                                 $environmentName = $deployment->application?->environment?->name;
                                 $environmentPath = collect([$projectName, $environmentName])->filter()->join(' / ');
+                                $ownerName = availOwnerName($deployment->application);
                             @endphp
 
                             <a wire:key="dashboard-recent-deployment-{{ $deployment->deployment_uuid }}"
@@ -145,6 +157,10 @@
                                 <p class="hidden truncate text-[12px] text-neutral-500 md:block dark:text-fg-dim">
                                     {{ $environmentPath ?: '-' }}
                                 </p>
+                                <p class="hidden truncate text-[12px] text-neutral-500 md:block dark:text-fg-dim"
+                                    title="{{ $ownerName ? 'Owner: '.$ownerName : 'No owner recorded' }}">
+                                    {{ $ownerName ?: '-' }}
+                                </p>
                                 <p class="hidden truncate text-[12px] text-neutral-500 md:block dark:text-fg-dim">
                                     {{ $deployment->server_name ?: '-' }}
                                 </p>
@@ -161,6 +177,10 @@
                                         {{ $environmentPath ?: '-' }}
                                         <span class="px-1 text-neutral-300 dark:text-white/15">·</span>
                                         {{ $deployment->server_name ?: '-' }}
+                                        @if ($ownerName)
+                                            <span class="px-1 text-neutral-300 dark:text-white/15">·</span>
+                                            {{ $ownerName }}
+                                        @endif
                                     </p>
                                 </div>
                             </a>
