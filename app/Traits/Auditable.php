@@ -90,6 +90,8 @@ trait Auditable
             "{$resourceType}_uuid" => $this->getAttribute('uuid'),
             "{$resourceType}_name" => $this->getAttribute('name') ?? $this->getAttribute('key'),
             'changed_fields' => $changedFields,
+            // Avail: a model may add identifiers (never values) through auditContext().
+            ...(method_exists($this, 'auditContext') ? $this->auditContext() : []),
         ], $this->auditChanges(
             $action,
             $action === 'updated' ? $changedFields : array_keys($this->getAttributes()),
