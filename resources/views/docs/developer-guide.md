@@ -21,7 +21,7 @@ Anyone else (partners, contractors, auditors) needs an invitation from an admin.
 | Role | Can do |
 | --- | --- |
 | Guest | View only the projects an admin shared with them: their apps, deployments and build logs. Read-only, no API access, and usually time-limited (30 days by default) |
-| Member | View apps, deployments and build logs; create apps (public repo, your own GitHub repos, Dockerfile, image); deploy, redeploy, restart, stop and roll back apps; runtime logs, environment variables and delete for apps you created |
+| Member | View apps, deployments and build logs; create apps (public repo, your own GitHub repos, Dockerfile, image); deploy, redeploy, restart, stop and roll back apps; for apps you created: runtime logs, environment variables, delete, and their settings (branch, build pack, commands, port, health check, `*.apps.avail.tools` address) |
 | Admin | Everything a member can, plus app settings, env vars, web terminal, databases, services, projects and environments, and managing team members |
 | Owner | Everything an admin can, plus creating teams and upgrading the platform |
 
@@ -36,18 +36,27 @@ Every app lives in a project and environment, e.g. **Avail Project → staging**
 1. Open the environment → **+ New resource** → **Git Repository (with GitHub App)**.
 2. Click **Continue with GitHub** (once). If the AvailCoolify GitHub app isn't installed on your account yet, GitHub asks you to install it; choose the repositories it may see.
 3. Pick an account or organisation. You only see repositories you can push to.
-4. Pick the repo and branch. The app is created and its first deployment starts straight away.
+4. Pick the repo and branch. The repository's default branch is preselected (e.g. `master`).
+5. Set the build before the first deploy, if needed:
+    - **Build pack:** Railpack (default) detects the language and builds the app. **Static** only serves the repo's files as they are, without building; for a built frontend, use Railpack with output type **Static site** and publish directory `dist`.
+    - **Base directory** for monorepos, e.g. `/apps/web`.
+    - **Build and run commands:** optional install, build and start commands, e.g. `pnpm install --frozen-lockfile`, `pnpm build`, `pnpm start`. Leave them empty to use what Railpack detects.
+    - **Environment variables:** paste them as `KEY=value` lines, so the first deploy already has its API keys.
+6. Click **Deploy**, or untick **Deploy right away** and click **Create** to review the settings first.
+
+A public repository also works without the GitHub app: **+ New resource** → **Public Git Repository**, paste the URL and pick the branch from the list.
 
 ![Import from GitHub: connected account and repository access](/images/developer-guide/github-import.jpg)
 
 - **Missing account or org:** use **+ Install on a GitHub account or organisation** (org installs need an org owner on GitHub).
 - **Missing repo:** use **Adjust repository access** and add it to the installation.
-- **Build:** apps build with Railpack, which detects the language from the repo. A Dockerfile or Docker Compose file can be used instead (app → Configuration → Build Pack).
+- **Build:** apps build with Railpack, which detects the language from the repo. A Dockerfile can be used instead (app → Configuration → Build Pack). Docker Compose is admin-only.
+- **Changing settings later:** on apps you created you can change the branch, build pack, commands, directories, port, health check and pre/post-deploy commands yourself. Custom Docker options, container labels, port mappings, persistent storage and the repository itself stay with admins.
 - **Manual deploy:** open the app → **Deploy** (or **Redeploy**). Use **Restart** when only the container needs restarting, not a rebuild.
 
 ![Application page with its URL and the Deploy button](/images/developer-guide/app-general.jpg)
 
-**App URLs** are `https://<name>.apps.avail.tools` with a real certificate, e.g. `https://nexus-fast-bridge.apps.avail.tools`. New apps start with a random name; an admin can change it under **Domains**, followed by a redeploy.
+**App URLs** are `https://<name>.apps.avail.tools` with a real certificate, e.g. `https://nexus-fast-bridge.apps.avail.tools`. New apps start with a random name. You can rename your app's address under **Domains** (then redeploy) to any free `https://<name>.apps.avail.tools`: one name of letters, digits and dashes, not used by another app. Other domains need an admin.
 
 **Deployment log:** app → **Deployment Logs** lists every run; open one to see each build and start step.
 
