@@ -139,8 +139,9 @@ class Application extends BaseModel
 
     private static $parserVersion = '5';
 
+    // Avail: new apps stop after 10 crash restarts (upstream makes the limit opt-in with 0).
     protected $attributes = [
-        'max_restart_count' => 0,
+        'max_restart_count' => 10,
     ];
 
     protected $fillable = [
