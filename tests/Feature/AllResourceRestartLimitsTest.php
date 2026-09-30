@@ -77,7 +77,8 @@ it('limits restarts only for applications', function () {
 });
 
 it('makes restart limits opt in for new application resources', function () {
-    foreach ([Application::class, ApplicationPreview::class, ServiceApplication::class] as $modelClass) {
+    // Avail: applications default to 10 restarts (tests/Feature/AvailRestartLimitDefaultTest.php).
+    foreach ([ApplicationPreview::class, ServiceApplication::class] as $modelClass) {
         expect((new $modelClass)->max_restart_count)->toBe(0);
     }
 });
