@@ -51,6 +51,19 @@ loki.process "default" {
 
 otelcol.receiver.loki "default" {
   output {
+    logs = [otelcol.processor.transform.service_name.input]
+  }
+}
+
+otelcol.processor.transform "service_name" {
+  error_mode = "ignore"
+  log_statements {
+    context    = "log"
+    statements = [
+      "set(resource.attributes[\"service.name\"], attributes[\"container_name\"]) where attributes[\"container_name\"] != nil",
+    ]
+  }
+  output {
     logs = [otelcol.processor.batch.default.input]
   }
 }
