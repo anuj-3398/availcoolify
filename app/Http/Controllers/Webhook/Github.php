@@ -16,8 +16,8 @@ use App\Models\Application;
 use App\Models\GithubApp;
 use App\Models\GithubRunnerConfig;
 use App\Models\GithubRunnerExecution;
-use App\Services\GithubConnect\GithubConnect;
 use App\Models\PrivateKey;
+use App\Services\GithubConnect\GithubConnect;
 use App\Services\GithubRunner\GithubRunnerApi;
 use App\Services\GithubRunner\GithubRunnerContainer;
 use Exception;
@@ -266,6 +266,31 @@ class Github extends Controller
     }
 
     /**
+     * Avail: "Continue with GitHub" keeps one github_apps record per installation of the platform
+     * app, all sharing its app id (and webhook secret). Runner jobs must use the record of the
+     * installation that sent them, never just the first record with that app id. Without an
+     * installation id only an unambiguous single record is used. Uninstalled or suspended
+     * installations get no runners.
+     */
+    private function availWorkflowJobSource(mixed $appId, Collection $payload): ?GithubApp
+    {
+        $records = GithubApp::where('app_id', $appId);
+        $installationId = data_get($payload, 'installation.id');
+
+        if (filled($installationId)) {
+            $githubApp = (clone $records)->where('installation_id', $installationId)->first();
+        } else {
+            $githubApp = (clone $records)->count() === 1 ? (clone $records)->first() : null;
+        }
+
+        if (! $githubApp || $githubApp->avail_installation_status !== null) {
+            return null;
+        }
+
+        return $githubApp;
+    }
+
+    /**
      * Handles GitHub Actions runner demand. Every lookup is scoped to the App whose signature was verified.
      * GitHub can give a job to any idle runner with matching labels, so progress is matched by runner name.
      */
@@ -424,7 +449,12 @@ class Github extends Controller
                 return response('cool');
             }
             if ($x_github_event === 'workflow_job') {
-                return $this->handleWorkflowJob($github_app, $payload);
+                $runnerApp = $this->availWorkflowJobSource($x_github_hook_installation_target_id, $payload);
+                if (! $runnerApp) {
+                    return response('Nothing to do. No active source for this installation.');
+                }
+
+                return $this->handleWorkflowJob($runnerApp, $payload);
             }
             if ($x_github_event === 'push') {
                 $id = $this->webhookPayloadDatabaseId($payload, 'repository.id');
