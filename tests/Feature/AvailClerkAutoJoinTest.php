@@ -17,7 +17,7 @@ beforeEach(function () {
     InstanceSettings::unguarded(fn () => InstanceSettings::updateOrCreate(['id' => 0], ['id' => 0, 'is_registration_enabled' => true]));
     $this->owner = User::factory()->create(['id' => 0, 'email' => 'owner@avail.test']);
     $this->rootTeam = Team::find(0) ?? Team::unguarded(fn () => Team::create(['id' => 0, 'name' => 'Avail Team', 'personal_team' => true]));
-    $this->setting = OauthSetting::updateOrCreate(['provider' => 'clerk'], ['enabled' => true, 'auto_join_root_team' => true]);
+    $this->setting = OauthSetting::updateOrCreate(['provider' => 'clerk'], ['enabled' => true, 'auto_join_root_team' => true, 'base_url' => 'https://example.clerk.accounts.dev']);
 });
 
 function clerkUser(string $email, string $id): object

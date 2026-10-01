@@ -70,11 +70,23 @@ test('force start from two open pages starts the deployment once', function () {
     Bus::assertDispatchedTimes(ApplicationDeploymentJob::class, 1);
 });
 
-test('members cannot force start a deployment', function () {
+// Avail: members may deploy (ApplicationPolicy::deploy), so they may force start too; guests may not.
+test('members can force start a deployment', function () {
     $this->team->members()->updateExistingPivot($this->user->id, ['role' => 'member']);
 
     Livewire::test(DeploymentNavbar::class, ['application_deployment_queue' => $this->deployment])
         ->call('force_start');
+
+    expect($this->deployment->fresh()->status)->toBe(ApplicationDeploymentStatus::IN_PROGRESS->value);
+    Bus::assertDispatchedTimes(ApplicationDeploymentJob::class, 1);
+});
+
+test('guests cannot force start a deployment', function () {
+    $this->team->members()->updateExistingPivot($this->user->id, ['role' => 'guest']);
+
+    // The app is outside the guest's projects, so the deployment page doesn't even load.
+    expect(fn () => Livewire::test(DeploymentNavbar::class, ['application_deployment_queue' => $this->deployment])
+        ->call('force_start'))->toThrow(Exception::class);
 
     expect($this->deployment->fresh()->status)->toBe(ApplicationDeploymentStatus::QUEUED->value);
     Bus::assertNotDispatched(ApplicationDeploymentJob::class);
