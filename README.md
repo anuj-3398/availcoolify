@@ -48,7 +48,7 @@ git push --force-with-lease origin avail
 The server runs a local image built from `avail`, not the official Coolify image, and Coolify's auto-update is off. Don't use the dashboard's Upgrade button; upgrade by syncing upstream and redeploying.
 
 ```bash
-./scripts/deploy-custom.sh                              # build HEAD of custom and deploy it
+./scripts/deploy-custom.sh                              # build HEAD of avail and deploy it  
 ./scripts/deploy-custom.sh availcoolify:custom-<sha>    # roll back to an earlier build
 ```
 
