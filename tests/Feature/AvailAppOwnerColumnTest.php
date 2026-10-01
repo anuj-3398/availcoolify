@@ -16,7 +16,7 @@ use Livewire\Livewire;
 
 /**
  * Avail: the environment resource table and the dashboard deployment tables
- * show each app's owner (the user who created it), with an Owner filter.
+ * show each app's owner (the user who created it), with an App Owner filter.
  */
 uses(RefreshDatabase::class);
 
@@ -65,9 +65,9 @@ test('the environment resource table shows an owner column and owner filter', fu
         'environment_uuid' => $this->environment->uuid,
     ]))
         ->assertOk()
-        ->assertSee('<div class="resource-owner">Owner</div>', false)
+        ->assertSee('<div class="resource-owner">App Owner</div>', false)
         ->assertSee('Mia Member')
-        ->assertSee("key: 'ownerFilters'", false);
+        ->assertSee("label: 'App Owners'", false);
 });
 
 test('the dashboard deployment tables show the app owner', function () {
@@ -84,6 +84,6 @@ test('the dashboard deployment tables show the app owner', function () {
     ]);
 
     Livewire::test(ActiveDeployments::class)
-        ->assertSeeHtml('<span>Owner</span>')
+        ->assertSeeHtml('<span>App Owner</span>')
         ->assertSee('Mia Member');
 });
