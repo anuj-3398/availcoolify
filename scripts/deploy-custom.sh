@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the checked-out branch (normally `custom`) into a local Coolify image and run it
+# Build the checked-out branch (normally `avail`) into a local Coolify image and run it
 # in place of the official one. Survives restarts, container recreation and reboots
 # because Coolify's compose setup always includes docker-compose.custom.yml.
 #
