@@ -182,7 +182,7 @@
                     <div>Status</div>
                     <div class="resource-domain">Domain</div>
                     <div class="resource-server">Server</div>
-                    <div class="resource-owner">Owner</div>
+                    <div class="resource-owner">App Owner</div>
                     <div class="resource-tags">Tags</div>
                 </div>
 
@@ -249,7 +249,7 @@
                             x-text="item.destination?.server?.name || 'Unknown'"></div>
 
                         <div class="resource-owner truncate text-[12px] text-neutral-600 dark:text-fg-dim"
-                            :title="item.owner ? `Owner: ${item.owner}` : 'No owner recorded'"
+                            :title="item.owner ? `App Owner: ${item.owner}` : 'No owner recorded'"
                             x-text="item.owner || '-'"></div>
 
                         <div class="resource-tags flex min-w-0 items-center gap-1 overflow-hidden">
@@ -328,7 +328,7 @@
                                         :title="displayDomain(item.fqdn)" x-text="displayDomain(item.fqdn)"></a>
                                 </template>
                                 <p x-show="item.owner" class="truncate text-[11px] text-neutral-500 dark:text-fg-faint"
-                                    x-text="`Owner: ${item.owner}`"></p>
+                                    x-text="`App Owner: ${item.owner}`"></p>
                             </div>
                         </article>
                     </template>
@@ -405,7 +405,7 @@
                     },
                     {
                         key: 'ownerFilters',
-                        label: 'Owners',
+                        label: 'App Owners',
                         options: this.uniqueOptions(this.resources.map((item) => ({
                             value: this.ownerKey(item),
                             label: item.owner || 'No owner',
