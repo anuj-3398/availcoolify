@@ -38,7 +38,7 @@ beforeEach(function () {
     if (! $this->owner->teams()->whereKey(0)->exists()) {
         $this->owner->teams()->attach(0, ['role' => 'owner']);
     }
-    $this->clerk = OauthSetting::updateOrCreate(['provider' => 'clerk'], ['enabled' => true, 'auto_join_root_team' => true]);
+    $this->clerk = OauthSetting::updateOrCreate(['provider' => 'clerk'], ['enabled' => true, 'auto_join_root_team' => true, 'base_url' => 'https://example.clerk.accounts.dev']);
 
     $this->admin = User::factory()->create(['email' => 'admin@avail.test']);
     $this->admin->teams()->attach(0, ['role' => 'admin']);
