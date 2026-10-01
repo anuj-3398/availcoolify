@@ -161,7 +161,7 @@ class CleanupDocker implements ShouldBeUnique
         );
 
         $commands = [
-            'docker container prune -f --filter "label=coolify.managed=true" --filter "label!=coolify.proxy=true" --filter "label!=coolify.type=database" --filter "label!=coolify.type=application" --filter "label!=coolify.type=service"',
+            $this->buildContainerPruneCommand(),
             $imagePruneCmd,
             'docker builder prune -af',
             "docker run --rm -v {$buildxMetadataVolume}:/root/.docker/buildx -v /var/run/docker.sock:/var/run/docker.sock {$helperImageWithVersion} docker buildx prune --builder coolify-railpack -af 2>/dev/null || true",
@@ -205,6 +205,20 @@ class CleanupDocker implements ShouldBeUnique
         }
 
         return instant_remote_process([$command], $server, false, timeout: $remaining);
+    }
+
+    /**
+     * Avail: remove stopped Coolify-managed containers, except applications, databases,
+     * services and the proxy. Docker's container prune can't express this: it ORs several
+     * `label!=` filters, so every stopped app container matched (e.g. ones kept after
+     * "Restart limit reached") and was deleted.
+     */
+    public function buildContainerPruneCommand(): string
+    {
+        return 'docker ps -a --filter "label=coolify.managed=true" --filter status=exited --filter status=created --filter status=dead'
+            .' --format \'{{.ID}}|{{.Label "coolify.type"}}|{{.Label "coolify.proxy"}}\''
+            .' | awk -F"|" \'$2 != "application" && $2 != "database" && $2 != "service" && $3 != "true" { print $1 }\''
+            .' | xargs -r docker rm';
     }
 
     /**
