@@ -33,7 +33,10 @@ $pgsql = [
     'prefix' => '',
     'prefix_indexes' => true,
     'search_path' => 'public',
-    'sslmode' => 'prefer',
+    // Avail: a remote (managed) Postgres sets DB_SSLMODE=verify-full and DB_SSLROOTCERT to the
+    // provider's CA bundle, so the connection is always encrypted and the server is verified.
+    'sslmode' => env('DB_SSLMODE', 'prefer'),
+    'sslrootcert' => env('DB_SSLROOTCERT'),
     'options' => [
         (defined('Pdo\Pgsql::ATTR_DISABLE_PREPARES') ? Pgsql::ATTR_DISABLE_PREPARES : PDO::PGSQL_ATTR_DISABLE_PREPARES) => env('DB_DISABLE_PREPARES', false),
     ],
