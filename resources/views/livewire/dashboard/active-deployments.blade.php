@@ -46,7 +46,7 @@
                             class="dashboard-deployment-table-grid hidden items-center gap-4 border-b border-neutral-200 bg-neutral-50 px-4 py-2.5 text-[11px] font-medium text-neutral-500 md:grid dark:border-white/[0.08] dark:bg-white/[0.05] dark:text-fg-faint">
                             <span>Application</span>
                             <span>Environment</span>
-                            <span>Owner</span>
+                            <span>App Owner</span>
                             <span>Server</span>
                             <span>Status</span>
                             <span>Started</span>
@@ -79,7 +79,7 @@
                                     {{ $environmentPath ?: '-' }}
                                 </p>
                                 <p class="hidden truncate text-[12px] text-neutral-500 md:block dark:text-fg-dim"
-                                    title="{{ $ownerName ? 'Owner: '.$ownerName : 'No owner recorded' }}">
+                                    title="{{ $ownerName ? 'App Owner: '.$ownerName : 'No owner recorded' }}">
                                     {{ $ownerName ?: '-' }}
                                 </p>
                                 <p class="hidden truncate text-[12px] text-neutral-500 md:block dark:text-fg-dim">
@@ -125,7 +125,7 @@
                             class="dashboard-deployment-table-grid hidden items-center gap-4 border-b border-neutral-200 bg-neutral-50 px-4 py-2.5 text-[11px] font-medium text-neutral-500 md:grid dark:border-white/[0.08] dark:bg-white/[0.05] dark:text-fg-faint">
                             <span>Application</span>
                             <span>Environment</span>
-                            <span>Owner</span>
+                            <span>App Owner</span>
                             <span>Server</span>
                             <span>Status</span>
                             <span>Started</span>
@@ -158,7 +158,7 @@
                                     {{ $environmentPath ?: '-' }}
                                 </p>
                                 <p class="hidden truncate text-[12px] text-neutral-500 md:block dark:text-fg-dim"
-                                    title="{{ $ownerName ? 'Owner: '.$ownerName : 'No owner recorded' }}">
+                                    title="{{ $ownerName ? 'App Owner: '.$ownerName : 'No owner recorded' }}">
                                     {{ $ownerName ?: '-' }}
                                 </p>
                                 <p class="hidden truncate text-[12px] text-neutral-500 md:block dark:text-fg-dim">

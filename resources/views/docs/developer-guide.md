@@ -58,7 +58,7 @@ A public repository also works without the GitHub app: **+ New resource** → **
 
 **App URLs** are `https://<name>.apps.avail.tools` with a real certificate, e.g. `https://nexus-fast-bridge.apps.avail.tools`. New apps start with a random name. You can rename your app's address under **Domains** (then redeploy) to any free `https://<name>.apps.avail.tools`: one name of letters, digits and dashes, not used by another app. Other domains need an admin.
 
-**App owner:** the **Owner** column in an environment's resource list and in the dashboard's deployment tables shows who created each app. Use **Filter → Owners** to see only one person's apps. Databases, services and apps created before owners were recorded show `-`.
+**App owner:** the **App Owner** column in an environment's resource list and in the dashboard's deployment tables shows who created each app. Use **Filter → App Owners** to see only one person's apps. Databases, services and apps created before owners were recorded show `-`.
 
 **Deployment log:** app → **Deployment Logs** lists every run; open one to see each build and start step.
 
