@@ -26,7 +26,9 @@ else
     # into the image with the rest of bootstrap/; the container rebuilds them on start.
     find bootstrap/cache -maxdepth 1 -name "*.php" -delete
     echo "Building $TAG from $(git rev-parse --abbrev-ref HEAD)"
-    docker build -f docker/production/Dockerfile -t "$TAG" .
+    # coolify.managed=true keeps the image through Coolify's scheduled Docker cleanup,
+    # which otherwise deletes every unused image, i.e. all earlier builds for rollback.
+    docker build -f docker/production/Dockerfile --label coolify.managed=true -t "$TAG" .
 fi
 
 # The compose files ship with the source tree and change between versions
