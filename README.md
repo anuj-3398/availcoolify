@@ -33,19 +33,19 @@ Developers push to GitHub and AvailCoolify builds and runs the app at `https://<
 | Branch | Purpose |
 | --- | --- |
 | `main` | Exact mirror of `coollabsio/coolify` `main`, fast-forward only. |
-| `custom` | All Avail changes on top of `main`. This is what gets deployed. |
+| `avail` | All Avail changes on top of `main`. This is what gets deployed. |
 
 Syncing with upstream:
 
 ```bash
 git checkout main && git fetch upstream && git merge --ff-only upstream/main && git push origin main
-git checkout custom && git rebase main        # resolve conflicts, run the tests
-git push --force-with-lease origin custom
+git checkout avail && git rebase main          # resolve conflicts, run the tests
+git push --force-with-lease origin avail
 ```
 
 ## Deploying
 
-The server runs a local image built from `custom`, not the official Coolify image, and Coolify's auto-update is off. Don't use the dashboard's Upgrade button; upgrade by syncing upstream and redeploying.
+The server runs a local image built from `avail`, not the official Coolify image, and Coolify's auto-update is off. Don't use the dashboard's Upgrade button; upgrade by syncing upstream and redeploying.
 
 ```bash
 ./scripts/deploy-custom.sh                              # build HEAD of custom and deploy it
