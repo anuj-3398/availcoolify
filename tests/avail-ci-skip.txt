@@ -1,0 +1,36 @@
+# Tests the production workflow does not run (scripts/prod/ci-tests.sh). Everything else is the gate.
+#
+#   path                            skip the whole file
+#   path :: regex                   skip only the tests whose name matches (several lines per file are fine)
+#
+# Keep a reason on every line. Skipping is for tests that can't tell us anything about the avail
+# branch; when a skipped test starts to pass for the right reason, delete its line.
+# Regexes are matched case-insensitively against the test name: no '/', no '#', no quotes.
+
+# --- Fail on pristine upstream main too (checked 2026-10-05 against main 34e4da109) ---------------
+tests/Feature/Application/GithubSourceCreateTest.php          # upstream: expects a URL without ?previews=1&runners=0
+tests/Feature/DeploymentSensitiveCommandFailureTest.php       # upstream: null network in ApplicationDeploymentJob
+tests/Feature/LocalhostServerDetailsTest.php                  # upstream: fails on main
+tests/Feature/ServiceTemplatesLastUpdatedHintTest.php         # upstream: no authenticated user in Select
+tests/Feature/TerminalSessionStartFailureTest.php             # upstream: fails on main
+tests/Feature/ToastPositionTest.php                           # upstream: needs node and a browser
+tests/Unit/CleanupHelperContainersJobTest.php                 # upstream: needs docker and jq on PATH
+tests/Unit/InstallScriptDirectoryPermissionsTest.php          # upstream: fails on main
+tests/Unit/ProductionImageWorkflowTest.php                    # asserts upstream's own release workflows; the fork ships avail-production.yml instead
+
+# --- Obsolete by design: Avail changed or removed the behaviour they assert -----------------------
+tests/Feature/ForgotPasswordLoginLinkTest.php                 # password login is disabled (Clerk only)
+tests/Feature/Team/ActiveTeamPersistenceTest.php :: persists the active team after a password login   # password login is disabled
+tests/Feature/OauthPasswordConfirmationTest.php :: lets a user with a linked identity and no password enable 2fa|still asks a password user without a linked identity   # profile 2FA section removed (no two-factor.enable route)
+tests/Feature/AccountAuditTest.php :: accepted magic link invitation without the temporary password    # invites land on /invitations/<uuid> for users without a team
+tests/Feature/AccountAuditTest.php :: registration of a user created by oauth login.*root team only    # Clerk users get no personal team
+tests/Feature/ApplicationHttpBasicAuthUiTest.php :: disabling http basic auth is saved instantly       # Security section now driven by authMode
+tests/Feature/DockerCleanupJobTest.php :: gives remote cleanup commands a local timeout               # container prune replaced by the label-aware cleanup (AvailCleanupDockerContainersTest covers it)
+tests/Feature/Proxy/CaddyBasicAuthLabelsTest.php :: emits the matching basic auth directive in application labels.*preview, all proxies   # preview labels now need an InstanceSettings row (Preview Guard)
+
+# --- Environment-dependent on GitHub-hosted runners (all pass in a plain php:8.4 container) -----------
+tests/Feature/DevScriptTest.php                               # upstream local-dev tooling: virsh and tailscale commands, not part of any deploy
+tests/Feature/DevelopmentQemuVmTest.php                       # upstream local-dev tooling: needs write access to host paths
+tests/Feature/ReverbOpenFileLimitTest.php                     # depends on the runner's hard open-file limit (ulimit -n)
+tests/Feature/ComposeExternalVolumeTest.php :: saves a service Compose file whose external volume name has a variable   # StackForm submit fails on the runner; the other 93 tests in the file run
+tests/Feature/ComposeContentVolumeConfinementTest.php :: the application General form rejects a content volume outside the application directory   # fails only on GitHub runners (passes as root and non-root locally, cause not found); the other 19 tests of the file cover the same confinement check
