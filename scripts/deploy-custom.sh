@@ -53,6 +53,20 @@ services:
     image: "$TAG"
 EOF
 
+# Managed Postgres (production): when DB_HOST points anywhere but the bundled `postgres` service,
+# don't start that service and don't wait for it. upgrade.sh includes this file too, so it holds.
+DB_HOST_VALUE="$(sed -n 's/^DB_HOST=//p' "$SOURCE/.env" | head -n1)"
+if [ -n "$DB_HOST_VALUE" ] && [ "$DB_HOST_VALUE" != "postgres" ]; then
+    cat >>"$SOURCE/docker-compose.custom.yml" <<EOF
+    depends_on: !override
+      redis:
+        condition: service_healthy
+  postgres:
+    profiles: [bundled-db]
+EOF
+    echo "External database at $DB_HOST_VALUE: bundled postgres service disabled"
+fi
+
 docker compose --env-file "$SOURCE/.env" \
     -f "$SOURCE/docker-compose.yml" \
     -f "$SOURCE/docker-compose.prod.yml" \

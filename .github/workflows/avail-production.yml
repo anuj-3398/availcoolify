@@ -1,0 +1,299 @@
+name: AvailCoolify production
+
+# One pipeline for the whole production go-live checklist ("Build, install and go-live").
+#
+#   pull request to avail     tests only
+#   push to avail             tests, then build and push ghcr.io/<owner>/availcoolify:custom-<sha9>
+#   Run workflow (manual):
+#     build      same as a push
+#     deploy     build HEAD, then deploy it to the control plane and run the go-live smoke checks
+#     provision  everything from a bare VM: harden hosts, install Docker, write .env for the managed
+#                Postgres, Cloudflare DNS/TLS/cache/rate limit, deploy, configure instance, smoke check
+#     rollback   redeploy an earlier image (input image_tag, e.g. custom-06e5e21b9)
+#
+# deploy / provision / rollback run in the "production" environment: add required reviewers there so
+# nothing reaches production without an approval. Secrets and variables are listed in
+# scripts/prod/README.md.
+
+on:
+  pull_request:
+    branches: [avail]
+  push:
+    branches: [avail]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: What to do
+        type: choice
+        options: [build, deploy, provision, rollback]
+        default: build
+      image_tag:
+        description: "rollback only: image tag to go back to (e.g. custom-06e5e21b9)"
+        type: string
+        required: false
+      cloudflare:
+        description: "provision only: also configure Cloudflare (DNS, TLS rule, cache, rate limit)"
+        type: boolean
+        default: true
+
+concurrency:
+  group: avail-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  test:
+    name: Tests
+    # Rolling back needs no build and no tests: the image already exists.
+    if: github.event_name != 'workflow_dispatch' || inputs.action != 'rollback'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: bcmath, curl, dom, fileinfo, intl, mbstring, openssl, pcntl, pdo_sqlite, pdo_pgsql, posix, sockets, sodium, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Composer cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      # Runs post-install-cmd too, which applies patches/ (vendor patches, same as the image build).
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Avail tests
+        # The full upstream suite has known order-dependent failures (see CLAUDE.md), so the gate is
+        # the Avail-specific tests plus the files the upstream sync keeps touching.
+        run: vendor/bin/pest tests/Feature/Avail*Test.php tests/Unit/Avail*Test.php
+
+      - name: Shell scripts
+        run: |
+          sudo apt-get install -y -qq shellcheck >/dev/null
+          shellcheck -S warning scripts/deploy-custom.sh scripts/prod/*.sh
+          php -l scripts/prod/configure-instance.php
+
+  image:
+    name: Build and push image
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      ref: ${{ steps.meta.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image name
+        id: meta
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "ref=${REGISTRY}/${owner}/availcoolify:custom-${GITHUB_SHA::9}" >>"$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/production/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.ref }}
+          # Coolify's nightly Docker cleanup deletes every unused image except labelled ones.
+          labels: |
+            coolify.managed=true
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+  release:
+    name: ${{ inputs.action }} to production
+    needs: [test, image]
+    # Manual runs only. "image" is skipped for rollback, so don't require it then.
+    if: >-
+      !cancelled() && github.event_name == 'workflow_dispatch'
+      && contains(fromJSON('["deploy","provision","rollback"]'), inputs.action)
+      && (needs.image.result == 'success' || inputs.action == 'rollback')
+      && needs.test.result != 'failure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+    env:
+      PROD_SSH_PRIVATE_KEY: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+      PROD_SSH_KNOWN_HOSTS: ${{ secrets.PROD_SSH_KNOWN_HOSTS }}
+      FINAL_SSH_PORT: ${{ vars.PROD_SSH_PORT || '58122' }}
+      INITIAL_SSH_PORT: ${{ vars.PROD_INITIAL_SSH_PORT || '22' }}
+      CONTROL_PLANE: ${{ vars.PROD_CONTROL_PLANE_HOST }}
+      APP_SERVERS: ${{ vars.PROD_APP_SERVER_HOSTS }}
+      DASHBOARD_URL: ${{ vars.PROD_DASHBOARD_URL }}
+      APPS_WILDCARD: ${{ vars.PROD_APPS_WILDCARD }}
+      ACTION: ${{ inputs.action }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ inputs.action == 'rollback' && '0' || '1' }}
+
+      - name: Pick the image
+        id: image
+        env:
+          BUILT_REF: ${{ needs.image.outputs.ref }}
+          TAG: ${{ inputs.image_tag }}
+        run: |
+          if [ "$ACTION" = rollback ]; then
+            [[ "$TAG" =~ ^custom-[0-9a-f]{7,40}$ ]] || { echo "::error::rollback needs image_tag like custom-06e5e21b9"; exit 1; }
+            owner="${GITHUB_REPOSITORY_OWNER,,}"
+            echo "ref=${REGISTRY}/${owner}/availcoolify:${TAG}" >>"$GITHUB_OUTPUT"
+            # Use the compose files and scripts of the commit that image was built from.
+            git checkout --detach "${TAG#custom-}"
+          else
+            echo "ref=$BUILT_REF" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: Check configuration
+        run: |
+          missing=""
+          for v in PROD_SSH_PRIVATE_KEY CONTROL_PLANE DASHBOARD_URL; do [ -n "${!v}" ] || missing="$missing $v"; done
+          if [ "$ACTION" = provision ]; then
+            for v in APP_SERVERS APPS_WILDCARD; do [ -n "${!v}" ] || missing="$missing $v"; done
+            for v in PROD_DB_HOST PROD_DB_PASSWORD PROD_ROOT_USER_EMAIL PROD_CLERK_CLIENT_ID PROD_CLERK_CLIENT_SECRET PROD_CLERK_BASE_URL; do
+              [ -n "${!v:-}" ] || missing="$missing $v"
+            done
+          fi
+          [ -z "$missing" ] || { echo "::error::missing configuration:$missing (see scripts/prod/README.md)"; exit 1; }
+        env:
+          PROD_DB_HOST: ${{ secrets.PROD_DB_HOST }}
+          PROD_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+          PROD_ROOT_USER_EMAIL: ${{ vars.PROD_ROOT_USER_EMAIL }}
+          PROD_CLERK_CLIENT_ID: ${{ secrets.PROD_CLERK_CLIENT_ID }}
+          PROD_CLERK_CLIENT_SECRET: ${{ secrets.PROD_CLERK_CLIENT_SECRET }}
+          PROD_CLERK_BASE_URL: ${{ vars.PROD_CLERK_BASE_URL }}
+
+      # ----------------------------------------------------------------------------- provision
+      - name: Provision hosts (SSH, Docker, /data/coolify, .env)
+        if: inputs.action == 'provision'
+        env:
+          DB_HOST: ${{ secrets.PROD_DB_HOST }}
+          DB_PORT: ${{ vars.PROD_DB_PORT }}
+          DB_DATABASE: ${{ vars.PROD_DB_NAME }}
+          DB_USERNAME: ${{ vars.PROD_DB_USER }}
+          DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+          DB_CA_CERT: ${{ secrets.PROD_DB_CA_CERT }}
+          DB_SSLMODE: ${{ vars.PROD_DB_SSLMODE }}
+          COOLIFY_APP_KEY: ${{ secrets.PROD_APP_KEY }}
+          ROOT_USER_EMAIL: ${{ vars.PROD_ROOT_USER_EMAIL }}
+          AUTO_JOIN_DOMAINS: ${{ vars.PROD_AUTO_JOIN_DOMAINS }}
+        run: |
+          source scripts/prod/ci-lib.sh
+          ssh_setup
+
+          provision_host() { # <host> <role>
+            local host="$1" role="$2" port
+            port="$(choose_port "$host")"
+            echo "::group::$role $host (ssh port $port)"
+            push_release "$host" "$port"
+            REMOTE_ENV="SSH_PORT DB_HOST DB_PORT DB_DATABASE DB_USERNAME DB_PASSWORD DB_CA_CERT DB_SSLMODE COOLIFY_APP_KEY ROOT_USER_EMAIL AUTO_JOIN_DOMAINS" \
+              SSH_PORT="$FINAL_SSH_PORT" \
+              remote_env "$host" "$port" "$RELEASE_DIR/scripts/prod/bootstrap-host.sh --role $role"
+            # Phase 2: prove the new port works from here, then close the old one.
+            if [ "$port" != "$FINAL_SSH_PORT" ]; then
+              remote "$host" "$FINAL_SSH_PORT" true || { echo "::error::$host does not accept SSH on $FINAL_SSH_PORT; port $port stays open. Open $FINAL_SSH_PORT in the provider firewall and re-run."; exit 1; }
+            fi
+            REMOTE_ENV="SSH_PORT" SSH_PORT="$FINAL_SSH_PORT" \
+              remote_env "$host" "$FINAL_SSH_PORT" "$RELEASE_DIR/scripts/prod/bootstrap-host.sh --role $role --finalize-ssh"
+            echo "::endgroup::"
+          }
+
+          provision_host "$CONTROL_PLANE" control-plane
+          for host in $APP_SERVERS; do provision_host "$host" app-server; done
+
+      - name: Cloudflare (DNS, TLS, cache, rate limit)
+        if: inputs.action == 'provision' && inputs.cloudflare
+        env:
+          CF_API_TOKEN: ${{ secrets.PROD_CLOUDFLARE_API_TOKEN }}
+          CF_ZONE: ${{ vars.PROD_CF_ZONE }}
+        run: |
+          [ -n "$CF_API_TOKEN" ] && [ -n "$CF_ZONE" ] || { echo "::error::PROD_CLOUDFLARE_API_TOKEN and PROD_CF_ZONE are required"; exit 1; }
+          export DASHBOARD_HOST="${DASHBOARD_URL#https://}" APPS_HOST="${APPS_WILDCARD#https://}"
+          export CONTROL_PLANE_IP="$CONTROL_PLANE" APP_SERVER_IP="${APP_SERVERS%% *}"
+          scripts/prod/cloudflare-setup.sh
+
+      # ------------------------------------------------------------------------------- deploy
+      - name: Deploy image to the control plane
+        id: deploy
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_REF: ${{ steps.image.outputs.ref }}
+        run: |
+          source scripts/prod/ci-lib.sh
+          ssh_setup
+          port="$(choose_port "$CONTROL_PLANE")"
+          push_release "$CONTROL_PLANE" "$port"
+          REMOTE_ENV="GHCR_USER GHCR_TOKEN" remote_env "$CONTROL_PLANE" "$port" "$RELEASE_DIR/scripts/prod/deploy-release.sh '$IMAGE_REF'"
+          previous="$(remote "$CONTROL_PLANE" "$port" 'cat /data/coolify/source/.avail-previous-image')"
+          echo "previous=$previous" >>"$GITHUB_OUTPUT"
+          echo "port=$port" >>"$GITHUB_OUTPUT"
+
+      - name: Configure the instance (settings, Clerk, Traefik trusted IPs)
+        if: inputs.action != 'rollback'
+        env:
+          AVAIL_DASHBOARD_URL: ${{ env.DASHBOARD_URL }}
+          AVAIL_APPS_WILDCARD: ${{ env.APPS_WILDCARD }}
+          AVAIL_SSH_PORT: ${{ env.FINAL_SSH_PORT }}
+          AVAIL_TRUST_CLOUDFLARE: "1"
+          CLERK_CLIENT_ID: ${{ secrets.PROD_CLERK_CLIENT_ID }}
+          CLERK_CLIENT_SECRET: ${{ secrets.PROD_CLERK_CLIENT_SECRET }}
+          CLERK_BASE_URL: ${{ vars.PROD_CLERK_BASE_URL }}
+          PORT: ${{ steps.deploy.outputs.port }}
+        run: |
+          source scripts/prod/ci-lib.sh
+          ssh_setup
+          # Wait for the app to finish migrating before touching its tables.
+          remote "$CONTROL_PLANE" "$PORT" 'for i in $(seq 60); do [ "$(docker inspect -f "{{.State.Health.Status}}" coolify 2>/dev/null)" = healthy ] && exit 0; sleep 5; done; echo "coolify did not become healthy" >&2; exit 1'
+          scp "${SSH_BASE[@]}" -P "$PORT" scripts/prod/configure-instance.php "root@$CONTROL_PLANE:/root/configure-instance.php"
+          REMOTE_ENV="AVAIL_DASHBOARD_URL AVAIL_APPS_WILDCARD AVAIL_SSH_PORT AVAIL_TRUST_CLOUDFLARE CLERK_CLIENT_ID CLERK_CLIENT_SECRET CLERK_BASE_URL" \
+            remote_env "$CONTROL_PLANE" "$PORT" 'f=$(mktemp); env | grep -E "^(AVAIL_|CLERK_)" >"$f"; docker exec -i --env-file "$f" coolify php < /root/configure-instance.php; rc=$?; rm -f "$f" /root/configure-instance.php; exit $rc'
+
+      - name: Smoke checks
+        run: scripts/prod/smoke-check.sh "$DASHBOARD_URL"
+
+      - name: Summary
+        if: always()
+        env:
+          IMAGE_REF: ${{ steps.image.outputs.ref }}
+          PREVIOUS: ${{ steps.deploy.outputs.previous }}
+        run: |
+          {
+            echo "### AvailCoolify production: $ACTION"
+            echo ""
+            echo "- Image: \`$IMAGE_REF\`"
+            echo "- Previous image: \`${PREVIOUS:-unknown}\`"
+            echo "- Dashboard: $DASHBOARD_URL"
+            echo ""
+            echo "Roll back: run this workflow with action **rollback** and image_tag \`${PREVIOUS##*:}\`."
+            echo "Database migrations are not undone by a rollback; restore from the provider's point-in-time backup if needed."
+          } >>"$GITHUB_STEP_SUMMARY"
