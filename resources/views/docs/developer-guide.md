@@ -75,6 +75,8 @@ Every pull request gets its own private preview URL, behind a Clerk login that o
 
 After one sign-in, a preview stays unlocked in that browser for 12 hours. Only PRs from repo owners, org members and collaborators build; PRs from forks never do. Put `[skip ci]` or `[skip cd]` in the PR title or commit message to skip a build.
 
+Previews are switched on for every new app. A push to any branch other than the app's production branch does nothing; a preview exists only for a pull request. For an app created before this, an admin turns previews on in the app's **Previews** tab.
+
 ## Access protection per environment
 
 Whether an app's own URL needs a Clerk login is decided by its environment, not per app. An admin sets it in **Settings → Access protection**, one switch per environment.
@@ -151,7 +153,7 @@ Start with the deployment log for build problems and **Runtime Logs** for proble
 | Preview shows 403 | You aren't in Avail Team, or you're a guest without that project | Sign in with the right Clerk account, or ask an admin |
 | "Waiting for an invitation" after sign-in | Your email isn't @availproject.org and you haven't accepted an invitation | Ask an admin for an invitation link |
 | "Your guest access has ended" | Your guest access date passed | Ask an admin to extend it |
-| Preview never appears | PR from a fork or a non-collaborator, or `[skip ci]` in the title | Push the branch to the main repo; remove the skip tag |
+| Preview never appears | PR from a fork or a non-collaborator, `[skip ci]` in the title, or previews are off for that app | Push the branch to the main repo; remove the skip tag; ask an admin to turn on **Previews** for the app |
 | Variable change not visible | Variables apply on deploy | Redeploy the app |
 
 ## Rules and gotchas

@@ -386,6 +386,9 @@ class Application extends BaseModel
         static::created(function ($application) {
             ApplicationSetting::create([
                 'application_id' => $application->id,
+                // Avail: PR previews are on for new apps (upstream: off). They sit behind the Clerk
+                // login, which Docker Compose apps don't get, so those stay opt-in.
+                'is_preview_deployments_enabled' => $application->build_pack !== 'dockercompose',
             ]);
             $application->compose_parsing_version = self::$parserVersion;
             $application->save();
