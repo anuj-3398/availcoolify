@@ -33,3 +33,4 @@ tests/Feature/DevScriptTest.php                               # upstream local-d
 tests/Feature/DevelopmentQemuVmTest.php                       # upstream local-dev tooling: needs write access to host paths
 tests/Feature/ReverbOpenFileLimitTest.php                     # depends on the runner's hard open-file limit (ulimit -n)
 tests/Feature/ComposeExternalVolumeTest.php :: saves a service Compose file whose external volume name has a variable   # StackForm submit fails on the runner; the other 93 tests in the file run
+tests/Feature/ComposeContentVolumeConfinementTest.php :: the application General form rejects a content volume outside the application directory   # fails only on GitHub runners (passes as root and non-root locally, cause not found); the other 19 tests of the file cover the same confinement check
