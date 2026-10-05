@@ -78,8 +78,10 @@ beforeEach(function () {
         'build_pack' => 'nixpacks',
     ]);
 
+    // Avail turns previews on for new apps; these tests start from the upstream default (off).
     $this->application->settings()->update([
         'is_container_label_readonly_enabled' => true,
+        'is_preview_deployments_enabled' => false,
     ]);
 });
 

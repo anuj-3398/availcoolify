@@ -66,6 +66,9 @@ beforeEach(function () {
         'ports_exposes' => '3000',
         'swarm_replicas' => 1,
     ]);
+
+    // Avail turns previews on for new apps; these tests start from the upstream default (off).
+    $this->application->settings()->update(['is_preview_deployments_enabled' => false]);
 });
 
 function applicationSettingsAuditEvents(string $event): Collection
