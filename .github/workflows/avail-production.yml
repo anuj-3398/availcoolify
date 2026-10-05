@@ -2,7 +2,7 @@ name: AvailCoolify production
 
 # One pipeline for the whole production go-live checklist ("Build, install and go-live").
 #
-#   pull request to avail     tests only
+#   pull request to avail     tests only (whole suite minus tests/avail-ci-skip.txt)
 #   push to avail             tests, then build and push ghcr.io/<owner>/availcoolify:custom-<sha9>
 #   Run workflow (manual):
 #     build      same as a push
@@ -52,7 +52,7 @@ jobs:
     # Rolling back needs no build and no tests: the image already exists.
     if: github.event_name != 'workflow_dispatch' || inputs.action != 'rollback'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -81,10 +81,18 @@ jobs:
 
       - run: npm ci --no-audit --no-fund && npm run build
 
-      - name: Avail tests
-        # The full upstream suite has known order-dependent failures (see CLAUDE.md), so the gate is
-        # the Avail-specific tests plus the files the upstream sync keeps touching.
-        run: vendor/bin/pest tests/Feature/Avail*Test.php tests/Unit/Avail*Test.php
+      - name: Test suite
+        # Whole suite, one process per file, minus the tests listed in tests/avail-ci-skip.txt
+        # (failing on upstream main too, or obsolete because Avail changed the behaviour).
+        run: scripts/prod/ci-tests.sh "$RUNNER_TEMP/tests"
+
+      - name: Test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: ${{ runner.temp }}/tests/logs
+          retention-days: 7
 
       - name: Shell scripts
         run: |

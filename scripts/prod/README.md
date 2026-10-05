@@ -5,7 +5,7 @@ checklist. It runs on the fork (`anuj-3398/availcoolify`) from the `avail` branc
 
 | Trigger | What runs |
 | --- | --- |
-| Pull request to `avail` | Tests (Avail suite, shellcheck, `php -l`) |
+| Pull request to `avail` | Whole test suite minus `tests/avail-ci-skip.txt`, shellcheck, `php -l` |
 | Push to `avail` | Tests, then build and push `ghcr.io/<owner>/availcoolify:custom-<sha9>` (label `coolify.managed=true`) |
 | Manual: **build** | Same as a push |
 | Manual: **deploy** | Build HEAD, deploy it to the control plane, configure the instance, smoke checks |
@@ -14,6 +14,15 @@ checklist. It runs on the fork (`anuj-3398/availcoolify`) from the `avail` branc
 
 `deploy`, `provision` and `rollback` use the GitHub environment **production**. Add required reviewers
 there so nothing reaches production without an approval.
+
+## The test gate
+
+`scripts/prod/ci-tests.sh` runs every Feature and Unit test file in its own process (the upstream suite is
+order-dependent and crashes in one process), four at a time, and retries a failing file once on its own.
+`tests/avail-ci-skip.txt` lists what is skipped, always with a reason: tests that also fail on pristine
+upstream `main`, and tests for behaviour Avail removed or changed (password login, profile 2FA, personal
+teams, the Security section, the container prune). Upstream test files are never edited, so syncs stay clean.
+After an upstream sync, run the workflow; a new failure is either a real regression or a new line for the list.
 
 ## Before the first run (what the pipeline cannot do)
 
