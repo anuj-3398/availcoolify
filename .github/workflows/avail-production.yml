@@ -73,6 +73,14 @@ jobs:
       # Runs post-install-cmd too, which applies patches/ (vendor patches, same as the image build).
       - run: composer install --no-interaction --prefer-dist --no-progress
 
+      # Views render @vite(), which needs public/build/manifest.json.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund && npm run build
+
       - name: Avail tests
         # The full upstream suite has known order-dependent failures (see CLAUDE.md), so the gate is
         # the Avail-specific tests plus the files the upstream sync keeps touching.
