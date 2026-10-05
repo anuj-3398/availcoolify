@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\InstanceSettings;
+use App\Models\OauthIdentity;
 use App\Models\OauthSetting;
 use App\Models\Team;
 use App\Models\User;
@@ -73,10 +74,61 @@ test('only the Avail Team owner can create teams', function () {
 test('a signed-in user left without a team joins the root team instead of a new personal team', function () {
     $user = User::factory()->create(['email' => 'teamless@avail.test']);
     $user->teams()->detach();
+    clerkIdentityFor($user, true);
     $teamsBefore = Team::count();
 
     $this->actingAs($user)->get(route('dashboard'));
 
     expect($user->fresh()->teams()->pluck('teams.id')->all())->toBe([0])
         ->and(Team::count())->toBe($teamsBefore);
+});
+
+test('a signed-in teamless user whose email the provider has not verified stays out of the root team', function () {
+    $user = User::factory()->create(['email' => 'unverified@avail.test']);
+    $user->teams()->detach();
+    clerkIdentityFor($user, false);
+
+    $this->actingAs($user)->get(route('dashboard'));
+
+    expect($user->fresh()->teams()->count())->toBe(0);
+});
+
+function clerkIdentityFor(User $user, bool $verified): void
+{
+    OauthIdentity::create([
+        'user_id' => $user->id,
+        'provider' => 'clerk',
+        'issuer' => 'https://example.clerk.accounts.dev',
+        'provider_user_id' => 'user_'.$user->id,
+        'email' => $user->email,
+        'raw_claims' => ['email_verified' => $verified],
+        'last_login_at' => now(),
+    ]);
+}
+
+function unverifiedClerkUser(string $email, string $id): object
+{
+    return (object) [
+        'id' => $id,
+        'email' => $email,
+        'name' => 'Unverified Person',
+        'user' => ['email_verified' => false, 'sub' => $id],
+    ];
+}
+
+test('a new Clerk user with an unverified company email does not join the root team', function () {
+    $user = app(OauthLoginService::class)->login('clerk', unverifiedClerkUser('claim@avail.test', 'user_claim'), $this->setting);
+
+    expect($user->teams()->count())->toBe(0)
+        ->and(availJoinRootTeam($user->fresh()))->toBeFalse()
+        ->and($user->fresh()->teams()->count())->toBe(0);
+});
+
+test('a teamless company-email user joins once the provider verifies the email', function () {
+    $user = app(OauthLoginService::class)->login('clerk', unverifiedClerkUser('later@avail.test', 'user_later'), $this->setting);
+    expect($user->teams()->count())->toBe(0);
+
+    app(OauthLoginService::class)->login('clerk', clerkUser('later@avail.test', 'user_later'), $this->setting);
+
+    expect($user->fresh()->teams()->whereKey(0)->first()?->pivot->role)->toBe('member');
 });

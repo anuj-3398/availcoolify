@@ -78,6 +78,20 @@ function availSharedReferenceError(): string
 }
 
 /**
+ * Avail: whether a sign-in provider (Clerk) has vouched for the email of this user. Company-email
+ * auto-join relies on it, so an unverified address can never claim a company domain.
+ */
+function availEmailVerifiedByProvider(\App\Models\User $user): bool
+{
+    $email = strtolower(trim((string) $user->email));
+
+    return $user->oauthIdentities()->get()->contains(
+        fn ($identity) => strtolower(trim((string) $identity->email)) === $email
+            && data_get($identity->raw_claims, 'email_verified') === true
+    );
+}
+
+/**
  * Avail: everyone works in the root team (team 0, "Avail Team"). When the Clerk "auto-join root
  * team" setting is on, a user outside it with a company email (config avail.auto_join_domains)
  * joins as a member, unless an admin removed them. Everyone else needs an invitation.
@@ -89,6 +103,9 @@ function availJoinRootTeam(?\App\Models\User $user): bool
         return false;
     }
     if (! availEmailAutoJoins($user->email) || $user->avail_removed_from_root_at !== null) {
+        return false;
+    }
+    if (! availEmailVerifiedByProvider($user)) {
         return false;
     }
     $autoJoin = (bool) \App\Models\OauthSetting::where('provider', 'clerk')->value('auto_join_root_team');

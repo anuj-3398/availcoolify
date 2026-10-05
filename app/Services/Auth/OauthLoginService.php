@@ -159,7 +159,7 @@ class OauthLoginService
                         throw new OauthLoginException('Registration is disabled', 'auth.registration_disabled');
                     }
 
-                    $user = $this->createUser($oauthUser->name ?: $email, $email, $oauthSetting);
+                    $user = $this->createUser($oauthUser->name ?: $email, $email, $oauthSetting, $this->hasVerifiedEmail($provider, $rawClaims, $email));
                 }
 
                 OauthIdentity::create([
@@ -282,7 +282,7 @@ class OauthLoginService
                         throw new OauthLoginException('Registration is disabled', 'auth.registration_disabled');
                     }
 
-                    $user = $this->createUser($oauthUser->name ?: $email, $email, $oauthSetting);
+                    $user = $this->createUser($oauthUser->name ?: $email, $email, $oauthSetting, $emailVerified);
                 }
 
                 OauthIdentity::create([
@@ -305,9 +305,9 @@ class OauthLoginService
         }
     }
 
-    private function createUser(string $name, string $email, OauthSetting $oauthSetting): User
+    private function createUser(string $name, string $email, OauthSetting $oauthSetting, bool $emailVerified = false): User
     {
-        $user = $this->provisionUser($name, $email, $oauthSetting);
+        $user = $this->provisionUser($name, $email, $oauthSetting, $emailVerified);
 
         auditLog('auth.user.registered', [
             ...$this->userAuditContext($user, $user->teams()->first()?->id),
@@ -344,7 +344,7 @@ class OauthLoginService
         ];
     }
 
-    private function provisionUser(string $name, string $email, OauthSetting $oauthSetting): User
+    private function provisionUser(string $name, string $email, OauthSetting $oauthSetting, bool $emailVerified = false): User
     {
         if (User::count() === 0) {
             $user = (new User)->forceFill([
@@ -366,9 +366,9 @@ class OauthLoginService
         }
 
         if ($oauthSetting->auto_join_root_team) {
-            // Avail: company emails join the root team; anyone else gets an account without a
-            // team and waits for an invitation.
-            return availEmailAutoJoins($email)
+            // Avail: company emails join the root team, but only when the provider verified the
+            // address; anyone else gets an account without a team and waits for an invitation.
+            return $emailVerified && availEmailAutoJoins($email)
                 ? $this->createRootTeamOnlyUser($name, $email)
                 : $this->createTeamlessUser($name, $email);
         }
