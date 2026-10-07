@@ -372,7 +372,7 @@ it('gives remote cleanup commands a local timeout and fails once the cleanup dea
     expect(fn () => CleanupDocker::run($server))
         ->toThrow(RuntimeException::class, 'Docker cleanup did not finish within '.CleanupDocker::REMOTE_COMMANDS_DEADLINE.' seconds');
 
-    $sshCommands = $commands->filter(fn (string $command) => str_contains($command, 'docker container prune') || str_contains($command, 'docker image prune'))->values();
+    $sshCommands = $commands->filter(fn (string $command) => str_contains($command, 'xargs -r docker rm') || str_contains($command, 'docker image prune'))->values();
 
     expect(CleanupDocker::REMOTE_COMMANDS_DEADLINE)->toBeLessThan(CleanupDocker::JOB_TIMEOUT)
         ->and($sshCommands)->toHaveCount(2)

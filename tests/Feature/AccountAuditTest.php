@@ -256,6 +256,7 @@ test('records an oauth identity linked to an existing user', function () {
 });
 
 test('records registration of a user created by oauth login', function (bool $autoJoinRootTeam) {
+    config(['avail.auto_join_domains' => 'example.com']);
     Auth::logout();
     Team::factory()->create(['id' => 0]);
     instanceSettings()->update(['is_registration_enabled' => true]);

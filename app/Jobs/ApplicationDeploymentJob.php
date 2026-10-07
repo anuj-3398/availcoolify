@@ -3900,11 +3900,12 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
                 $source = 'repo';
             }
         } else {
-            $previous = ApplicationDeploymentQueue::where('application_id', $this->application->id)
+            $commit = isset($this->commit) ? $this->commit : null;
+            $previous = $commit === null ? null : ApplicationDeploymentQueue::where('application_id', $this->application->id)
                 ->where('pull_request_id', $this->pull_request_id)
-                ->where('commit', $this->commit)
+                ->where('commit', $commit)
                 ->where('status', ApplicationDeploymentStatus::FINISHED->value)
-                ->where('id', '!=', $this->application_deployment_queue->id)
+                ->where('id', '!=', (int) $this->application_deployment_queue->id)
                 ->whereNotNull('avail_routing_rules')
                 ->latest('id')
                 ->first();
@@ -3924,8 +3925,10 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
 
         $target->avail_routing_rules = $rules;
         $target->save();
-        $this->application_deployment_queue->avail_routing_rules = ['read' => $this->availRepoCloned, 'rules' => $rules];
-        $this->application_deployment_queue->save();
+        if ($this->application_deployment_queue->id) {
+            \Illuminate\Support\Facades\DB::table('application_deployment_queues')->where('id', $this->application_deployment_queue->id)
+                ->update(['avail_routing_rules' => json_encode(['read' => $this->availRepoCloned, 'rules' => $rules])]);
+        }
 
         if ($rules) {
             $log('Routing rules: '.count($rules['headers'] ?? []).' header rule(s) and '.count($rules['redirects'] ?? [])." redirect(s) from {$rules['file']} ({$source}).");
