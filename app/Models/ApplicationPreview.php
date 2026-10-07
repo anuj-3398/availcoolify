@@ -44,6 +44,7 @@ class ApplicationPreview extends BaseModel
         'pull_request_id' => 'integer',
         'domain_dns_statuses' => 'array',
         'domain_port_overrides' => 'array',
+        'avail_routing_rules' => 'array',
     ];
 
     protected static function booted(): void

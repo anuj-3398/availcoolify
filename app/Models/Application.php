@@ -268,6 +268,7 @@ class Application extends BaseModel
     protected function casts(): array
     {
         return [
+            'avail_routing_rules' => 'array',
             'http_basic_auth_password' => 'encrypted',
             'manual_webhook_secret_github' => 'encrypted',
             'manual_webhook_secret_gitlab' => 'encrypted',

@@ -90,6 +90,36 @@ Whether an app's own URL needs a Clerk login is decided by its environment, not 
 
 PR previews need a Clerk login in every environment. A switch change reaches an app on its next deploy.
 
+## Headers and redirects (availcoolify.json)
+
+Put a file called `availcoolify.json` in the root of the app's folder in the repo (the base directory, if you set one) to add security headers, cache rules and redirects. It is read on every deploy, so changing a rule is a push or merge plus a deploy, and the rules roll back with the code. Anyone who can push to the repo can change them.
+
+```json
+{
+  "headers": [
+    { "source": "/(.*)", "headers": [
+      { "key": "Content-Security-Policy", "value": "default-src 'self'" },
+      { "key": "X-Frame-Options", "value": "DENY" }
+    ] },
+    { "source": "/assets/:path*", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000" }] }
+  ],
+  "redirects": [
+    { "source": "/old", "destination": "/new", "permanent": true },
+    { "source": "/blog/:slug", "destination": "/posts/:slug" }
+  ]
+}
+```
+
+- **Same format as `vercel.json`.** If there is no `availcoolify.json`, the `headers` and `redirects` of a `vercel.json` are used instead (everything else in it is ignored). If both exist, `availcoolify.json` wins. Headers can be a list of `key` and `value` objects, as in Vercel, or a simple `"Name": "value"` map.
+- **Paths:** `/old`, `/blog/:slug`, `/assets/:path*`, `/assets/(.*)`, `/(api|trpc)/:path*`, and the Next.js form `/((?!api|_next).*)` (every path except those). Other lookaheads, back-references and `has`/`missing` conditions are skipped.
+- **Redirects:** `permanent: true` sends 301, otherwise 302. Traefik cannot send 307 or 308, so those are sent as 302 and 301.
+- **Not supported yet:** `rewrites`, `cleanUrls`, `trailingSlash`. They are ignored.
+- **If rules overlap:** site-wide header rules always apply. For paths that match several path-specific header rules, the first one in the file wins.
+- **PR previews** use the file from the PR branch, and the Clerk login in front of them still applies.
+- **A bad file never breaks a deploy.** The deployment log lists what was applied and what was skipped and why; if the file is not valid JSON, the previous deployment's rules stay in place.
+- **Only for apps built from a repo** (Nixpacks, Railpack, Dockerfile, static), with Coolify-managed labels. Docker Compose apps, one-click services, prebuilt images and apps with hand-edited container labels do not get the rules.
+- Cache headers only help a CDN when the domain is proxied through Cloudflare; browsers always follow them.
+
 ## Promoting from staging to production
 
 Test in staging first, then copy the app to production.

@@ -1348,6 +1348,8 @@ function generateLabelsApplication(Application $application, ?ApplicationPreview
         }
     }
 
+    // Avail: headers and redirects from availcoolify.json, before the guard so the guard runs first.
+    $labels = applyAvailRoutingRulesLabels($labels, $application, $preview);
     $labels = applyPreviewGuardLabels($labels, $application, $preview);
 
     return $labels->all();

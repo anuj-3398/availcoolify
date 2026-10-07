@@ -98,6 +98,9 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
 
     private bool $rollback;
 
+    // Avail: true once the repository was cloned in this deployment (not when an existing image is reused).
+    private bool $availRepoCloned = false;
+
     private bool $force_rebuild;
 
     private bool $restart_only;
@@ -3048,6 +3051,7 @@ class ApplicationDeploymentJob implements ShouldBeEncrypted, ShouldQueue
             $this->application_deployment_queue->addLogEntry("Checking out tag pull/{$this->pull_request_id}/head.");
         }
         $this->execute_remote_command(...$this->gitCommandDefinitions($importCommands));
+        $this->availRepoCloned = true;
         $this->create_workdir();
         $this->execute_remote_command(
             [
@@ -3856,10 +3860,100 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
         }
     }
 
+
+    /**
+     * Avail: read availcoolify.json (or, if there is none, the headers and redirects of vercel.json)
+     * from the cloned repository and keep the checked rules on the application (or preview), so the
+     * labels generated for this deployment carry them. When no clone happened (an existing image is
+     * reused: rollback or an unchanged commit), the rules this commit was deployed with are used again.
+     */
+    private function availApplyRoutingRules(): void
+    {
+        if (! config('avail.routing_rules_enabled', true)) {
+            return;
+        }
+        if (in_array($this->application->build_pack, ['dockerimage', 'dockercompose'], true)) {
+            return;
+        }
+        $target = $this->pull_request_id === 0 ? $this->application : $this->preview;
+        if (! $target) {
+            return;
+        }
+        $log = fn (string $line) => $this->application_deployment_queue->addLogEntry($line);
+        $current = $target->avail_routing_rules;
+        $rules = $current;
+        $source = 'kept';
+
+        if ($this->availRepoCloned) {
+            $primary = $this->availReadRepoFile(AVAIL_ROUTING_FILE, 'avail_rules_primary');
+            $fallback = trim($primary) === '' ? $this->availReadRepoFile(AVAIL_ROUTING_FALLBACK_FILE, 'avail_rules_fallback') : '';
+            $result = availRoutingParseRepoFiles($primary, $fallback);
+            foreach ($result['notes'] as $note) {
+                $log('Routing rules: '.$note);
+            }
+            if (! $result['ok']) {
+                foreach ($result['errors'] as $error) {
+                    $log('Routing rules: '.$error.' The rules of the previous deployment stay in place.');
+                }
+            } else {
+                $rules = $result['rules'];
+                $source = 'repo';
+            }
+        } else {
+            $previous = ApplicationDeploymentQueue::where('application_id', $this->application->id)
+                ->where('pull_request_id', $this->pull_request_id)
+                ->where('commit', $this->commit)
+                ->where('status', ApplicationDeploymentStatus::FINISHED->value)
+                ->where('id', '!=', $this->application_deployment_queue->id)
+                ->whereNotNull('avail_routing_rules')
+                ->latest('id')
+                ->first();
+            if ($previous) {
+                $rules = data_get($previous->avail_routing_rules, 'rules');
+                $source = 'previous deployment of this commit';
+            }
+        }
+
+        if (! $this->application->settings->is_container_label_readonly_enabled) {
+            if ($rules) {
+                $log('Routing rules: not applied, the container labels of this application are managed by hand.');
+            }
+
+            return;
+        }
+
+        $target->avail_routing_rules = $rules;
+        $target->save();
+        $this->application_deployment_queue->avail_routing_rules = ['read' => $this->availRepoCloned, 'rules' => $rules];
+        $this->application_deployment_queue->save();
+
+        if ($rules) {
+            $log('Routing rules: '.count($rules['headers'] ?? []).' header rule(s) and '.count($rules['redirects'] ?? [])." redirect(s) from {$rules['file']} ({$source}).");
+        }
+        // The stored labels are what a deployment uses, so they have to carry the new rules.
+        if ($this->pull_request_id === 0 && data_get($this->application, 'custom_labels')) {
+            $this->application->custom_labels = base64_encode(implode("\n", generateLabelsApplication($this->application)));
+            $this->application->save();
+        }
+    }
+
+    private function availReadRepoFile(string $name, string $saveAs): string
+    {
+        $this->execute_remote_command([
+            executeInDocker($this->deployment_uuid, 'head -c '.(AVAIL_ROUTING_MAX_BYTES + 1).' '.escapeshellarg("{$this->workdir}/{$name}").' 2>/dev/null || true'),
+            'hidden' => true,
+            'save' => $saveAs,
+            'ignore_errors' => true,
+        ]);
+
+        return (string) $this->saved_outputs->get($saveAs, '');
+    }
+
     private function generate_compose_file()
     {
         $this->checkForCancellation();
         $this->create_workdir();
+        $this->availApplyRoutingRules();
         $ports = $this->application->main_port();
         $persistent_storages = $this->generate_local_persistent_volumes();
         $persistent_file_volumes = $this->application->fileStorages()->get();
