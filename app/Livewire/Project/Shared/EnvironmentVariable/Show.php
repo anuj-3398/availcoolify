@@ -273,8 +273,7 @@ class Show extends Component
 
     private function valuesHiddenForUser(): bool
     {
-        // Avail: members also see no values on resources they did not create.
-        return (auth()->user()?->cannot('update', $this->env) ?? true) || availHidesEnvValues($this->env->resourceable);
+        return auth()->user()?->cannot('update', $this->env) ?? true;
     }
 
     public function checkEnvs()

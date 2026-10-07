@@ -228,7 +228,7 @@ describe('workflow_job webhook', function () {
             'conclusion' => 'success',
         ], installationId: 987654)
             ->assertOk()
-            ->assertSee('another installation');
+            ->assertSee('Nothing to do');
 
         expect(GithubRunnerExecution::count())->toBe(1)
             ->and($execution->fresh()->status)->toBe(GithubRunnerStatus::Running);

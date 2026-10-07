@@ -16,7 +16,7 @@ beforeEach(function () {
 
     InstanceSettings::forceCreate(['id' => 0]);
     Once::flush();
-    OauthSetting::create(['provider' => 'authentik']);
+    OauthSetting::create(['provider' => 'clerk']);
 
     $this->rootTeam = Team::forceCreate(['id' => 0, 'name' => 'Root Team', 'personal_team' => false, 'show_boarding' => false]);
 });
@@ -62,5 +62,5 @@ it('redirects team members from the oauth settings page to the dashboard', funct
 it('shows the oauth settings page to instance admins', function (string $role) {
     actingAsRootTeamMemberWithRole($role);
 
-    $this->get(route('settings.oauth'))->assertSuccessful()->assertSee('Authentik');
+    $this->get(route('settings.oauth'))->assertSuccessful()->assertSee('Clerk');
 })->with(['admin', 'owner']);

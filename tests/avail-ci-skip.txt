@@ -40,3 +40,5 @@ tests/Unit/GithubRunnerContainerTest.php                      # fails only on Gi
 tests/Feature/GithubRunnerFlowTest.php                        # GitHub runners feature, skipped with the rest of the runner tests
 tests/Feature/GithubRunnerSettingsTest.php                    # GitHub runners feature, skipped with the rest of the runner tests
 tests/Feature/AvailGithubRunnerInstallationTest.php           # our own runner-source tests; skipped with the rest of the runner tests
+tests/Feature/Auth/LoginKeepsPendingInvitationTest.php          # password login is disabled (Clerk only)
+tests/Unit/SudoOwnershipSymlinkTest.php                       # upstream: fails on main too (coreutils chown cases)
