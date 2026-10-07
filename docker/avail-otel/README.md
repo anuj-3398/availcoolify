@@ -1,5 +1,7 @@
 # Avail log shipper (Grafana Alloy -> SigNoz)
 
+**Status: switched off.** Nothing starts it: deploying AvailCoolify does not run this. It only runs when someone starts it by hand (below), and it sends logs to SigNoz from then on until it is stopped (`docker compose down`).
+
 Ships the stdout/stderr of every Docker container on the host (coolify, coolify-proxy, apps) to SigNoz over OTLP/HTTP.
 Runs standalone, outside Coolify. Docker keeps only 3 x 10 MB per container, so this is the long-term log store.
 
