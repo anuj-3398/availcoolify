@@ -42,8 +42,8 @@ loki.source.docker "containers" {
 loki.process "default" {
   stage.static_labels {
     values = {
-      host_name              = "anuj-coolify-testing",
-      deployment_environment = "coolify-testing",
+      host_name              = coalesce(sys.env("HOST_NAME"), "anuj-coolify-testing"),
+      deployment_environment = coalesce(sys.env("DEPLOYMENT_ENVIRONMENT"), "coolify-testing"),
     }
   }
   forward_to = [otelcol.receiver.loki.default.receiver]

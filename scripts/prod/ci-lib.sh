@@ -1,74 +1,71 @@
 #!/usr/bin/env bash
-# Helpers for the production workflow (source this file; it defines functions only).
+# Helpers for the release workflow (source this file; it defines functions only).
 #
-#   ssh_setup               needs PROD_SSH_PRIVATE_KEY; optional PROD_SSH_KNOWN_HOSTS
-#   choose_port <host>      prints the first SSH port that works: FINAL_SSH_PORT, else INITIAL_SSH_PORT
-#   remote <host> <port> <command...>
-#   remote_env <host> <port> <command...>
-#                           like remote, but first ships the variables named in $REMOTE_ENV to the
-#                           host as a 0600 file that the command sources and then deletes, so secrets
-#                           never appear in a process list or the workflow log
-#   push_release <host> <port>   rsync the files a deploy needs into /root/availcoolify-release
+#   load_ssm                      export the SSM parameters that scripts/prod/ssm-load.sh wrote
+#   remote <node> <command...>    run a command as root on a VM through Teleport
+#   remote_env <node> <command...>
+#                                 like remote, but first ships the variables named in $REMOTE_ENV to the
+#                                 VM as a 0600 file that the command sources and then deletes, so secrets
+#                                 never appear in a process list or the workflow log
+#   push_release <node>           copy the files a deploy needs into /root/availcoolify-release
+#   node_public_ip <node>         public IPv4 address of a VM
+#
+# VMs are reached through Teleport only (no SSH keys). <node> is the node name in Teleport. The workflow's
+# teleport-actions/auth step leaves TELEPORT_IDENTITY_FILE in the environment; TELEPORT_PROXY is the proxy
+# address (host:port).
 
-SSH_DIR="${HOME}/.ssh"
-FINAL_SSH_PORT="${FINAL_SSH_PORT:-58122}"
-INITIAL_SSH_PORT="${INITIAL_SSH_PORT:-22}"
-RELEASE_DIR=/root/availcoolify-release
+RELEASE_DIR="${RELEASE_DIR:-/root/availcoolify-release}"
+SSM_ENV_FILE="${SSM_ENV_FILE:-${RUNNER_TEMP:-/tmp}/ssm.env}"
 
-ssh_setup() {
-    : "${PROD_SSH_PRIVATE_KEY:?PROD_SSH_PRIVATE_KEY is not set}"
-    install -d -m 700 "$SSH_DIR"
-    printf '%s\n' "$PROD_SSH_PRIVATE_KEY" >"$SSH_DIR/avail_deploy"
-    chmod 600 "$SSH_DIR/avail_deploy"
-    if [ -n "${PROD_SSH_KNOWN_HOSTS:-}" ]; then
-        printf '%s\n' "$PROD_SSH_KNOWN_HOSTS" >"$SSH_DIR/known_hosts"
-        STRICT=yes
-    else
-        echo "::warning::PROD_SSH_KNOWN_HOSTS is not set; trusting host keys on first use"
-        STRICT=accept-new
+load_ssm() {
+    if [ ! -f "$SSM_ENV_FILE" ]; then
+        echo "::error::$SSM_ENV_FILE is missing; the 'Load secrets from SSM' step did not run" >&2
+        return 1
     fi
-    SSH_BASE=(-i "$SSH_DIR/avail_deploy" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15
-        -o ServerAliveInterval=15 -o StrictHostKeyChecking="$STRICT" -o UserKnownHostsFile="$SSH_DIR/known_hosts")
-}
-
-choose_port() {
-    local host="$1" port
-    for port in "$FINAL_SSH_PORT" "$INITIAL_SSH_PORT"; do
-        if ssh "${SSH_BASE[@]}" -p "$port" "root@$host" true 2>/dev/null; then
-            echo "$port"
-            return 0
-        fi
-    done
-    echo "cannot reach $host over SSH on $FINAL_SSH_PORT or $INITIAL_SSH_PORT (provider firewall? key?)" >&2
-    return 1
+    set -a
+    # shellcheck disable=SC1090
+    . "$SSM_ENV_FILE"
+    set +a
 }
 
 remote() {
-    local host="$1" port="$2"
-    shift 2
-    ssh "${SSH_BASE[@]}" -p "$port" "root@$host" "$@"
+    local node="$1"
+    shift
+    : "${TELEPORT_IDENTITY_FILE:?TELEPORT_IDENTITY_FILE is not set (did teleport-actions/auth run?)}"
+    : "${TELEPORT_PROXY:?TELEPORT_PROXY is not set}"
+    tsh --proxy="$TELEPORT_PROXY" -i "$TELEPORT_IDENTITY_FILE" ssh "root@$node" "$@"
 }
 
 remote_env() {
-    local host="$1" port="$2" f name
-    shift 2
+    local node="$1" f name
+    shift
     f="/root/.avail-run-$$-$RANDOM.env"
     {
         for name in $REMOTE_ENV; do
             printf '%s=%q\n' "$name" "${!name-}"
         done
-    } | ssh "${SSH_BASE[@]}" -p "$port" "root@$host" "umask 077; cat > '$f'"
-    ssh "${SSH_BASE[@]}" -p "$port" "root@$host" "set -a; . '$f'; set +a; rm -f '$f'; $*"
+    } | remote "$node" "umask 077; cat > '$f'"
+    remote "$node" "set -a; . '$f'; set +a; rm -f '$f'; $*"
 }
 
 push_release() {
-    local host="$1" port="$2"
-    remote "$host" "$port" "mkdir -p $RELEASE_DIR"
-    rsync -az --delete -e "ssh ${SSH_BASE[*]} -p $port" \
-        --include='/docker-compose.yml' --include='/docker-compose.prod.yml' --include='/.env.production' \
-        --include='/config/' --include='/config/constants.php' \
-        --include='/scripts/' --include='/scripts/deploy-custom.sh' --include='/scripts/prod/' --include='/scripts/prod/***' \
-        --exclude='*' \
-        ./ "root@$host:$RELEASE_DIR/"
-    remote "$host" "$port" "chmod +x $RELEASE_DIR/scripts/deploy-custom.sh $RELEASE_DIR/scripts/prod/*.sh"
+    local node="$1"
+    tar czf - \
+        --exclude='docker/avail-otel/.env' \
+        docker-compose.yml docker-compose.prod.yml .env.production \
+        config/constants.php \
+        scripts/deploy-custom.sh scripts/prod \
+        docker/avail-otel |
+        remote "$node" "rm -rf '$RELEASE_DIR' && mkdir -p '$RELEASE_DIR' && tar xzf - -C '$RELEASE_DIR' && chmod +x '$RELEASE_DIR'/scripts/deploy-custom.sh '$RELEASE_DIR'/scripts/prod/*.sh"
+}
+
+node_public_ip() {
+    local node="$1" ip
+    # DigitalOcean's metadata service first, then a public echo service.
+    ip="$(remote "$node" 'curl -fsS --max-time 3 http://169.254.169.254/metadata/v1/interfaces/public/0/ipv4/address 2>/dev/null || curl -4 -fsS --max-time 10 https://api.ipify.org')"
+    if ! [[ "$ip" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]]; then
+        echo "cannot work out the public IP of $node (got: $ip); set PROD_CONTROL_PLANE_IP / PROD_APP_SERVER_IP" >&2
+        return 1
+    fi
+    echo "$ip"
 }

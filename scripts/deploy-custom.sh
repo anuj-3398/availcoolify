@@ -8,7 +8,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
-SOURCE=/data/coolify/source
+SOURCE="${COOLIFY_SOURCE:-/data/coolify/source}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
 cd "$REPO"
@@ -53,10 +53,12 @@ services:
     image: "$TAG"
 EOF
 
-# Managed Postgres (production): when DB_HOST points anywhere but the bundled `postgres` service,
-# don't start that service and don't wait for it. upgrade.sh includes this file too, so it holds.
+# Managed Postgres (production): when DATABASE_URL is set, or DB_HOST points anywhere but the bundled
+# `postgres` service, don't start that service and don't wait for it. upgrade.sh includes this file too,
+# so it holds.
 DB_HOST_VALUE="$(sed -n 's/^DB_HOST=//p' "$SOURCE/.env" | head -n1)"
-if [ -n "$DB_HOST_VALUE" ] && [ "$DB_HOST_VALUE" != "postgres" ]; then
+DATABASE_URL_VALUE="$(sed -n 's/^DATABASE_URL=//p' "$SOURCE/.env" | head -n1)"
+if [ -n "$DATABASE_URL_VALUE" ] || { [ -n "$DB_HOST_VALUE" ] && [ "$DB_HOST_VALUE" != "postgres" ]; }; then
     cat >>"$SOURCE/docker-compose.custom.yml" <<EOF
     depends_on: !override
       redis:
@@ -64,7 +66,8 @@ if [ -n "$DB_HOST_VALUE" ] && [ "$DB_HOST_VALUE" != "postgres" ]; then
   postgres:
     profiles: [bundled-db]
 EOF
-    echo "External database at $DB_HOST_VALUE: bundled postgres service disabled"
+    # Never print DATABASE_URL: it carries the password.
+    echo "External database configured: bundled postgres service disabled"
 fi
 
 docker compose --env-file "$SOURCE/.env" \

@@ -16,7 +16,7 @@ tests/Feature/TerminalSessionStartFailureTest.php             # upstream: fails 
 tests/Feature/ToastPositionTest.php                           # upstream: needs node and a browser
 tests/Unit/CleanupHelperContainersJobTest.php                 # upstream: needs docker and jq on PATH
 tests/Unit/InstallScriptDirectoryPermissionsTest.php          # upstream: fails on main
-tests/Unit/ProductionImageWorkflowTest.php                    # asserts upstream's own release workflows; the fork ships avail-production.yml instead
+tests/Unit/ProductionImageWorkflowTest.php                    # asserts upstream's own release workflows; the fork ships release.yml instead
 
 # --- Obsolete by design: Avail changed or removed the behaviour they assert -----------------------
 tests/Feature/ForgotPasswordLoginLinkTest.php                 # password login is disabled (Clerk only)

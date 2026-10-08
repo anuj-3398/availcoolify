@@ -1,6 +1,8 @@
 # Avail log shipper (Grafana Alloy -> SigNoz)
 
-**Status: switched off.** Nothing starts it: deploying AvailCoolify does not run this. It only runs when someone starts it by hand (below), and it sends logs to SigNoz from then on until it is stopped (`docker compose down`).
+**Status on the testing VM: switched off.** Nothing starts it: deploying AvailCoolify does not run this. It only runs when someone starts it by hand (below), and it sends logs to SigNoz from then on until it is stopped (`docker compose down`).
+
+**Production:** the release workflow (`.github/workflows/release.yml`) starts it on every production VM through `scripts/prod/deploy-platform.sh`, but only when the SSM parameter `SIGNOZ_OTLP_ENDPOINT` exists. It sets `HOST_NAME` (the Teleport node name) and `DEPLOYMENT_ENVIRONMENT=production`.
 
 Ships the stdout/stderr of every Docker container on the host (coolify, coolify-proxy, apps) to SigNoz over OTLP/HTTP.
 Runs standalone, outside Coolify. Docker keeps only 3 x 10 MB per container, so this is the long-term log store.
