@@ -58,13 +58,13 @@ it('ignores the other keys of a vercel.json and says so', function () {
     $result = availRoutingParse(json_encode([
         '$schema' => 'https://openapi.vercel.sh/vercel.json',
         'buildCommand' => 'npm run build',
-        'rewrites' => [['source' => '/a', 'destination' => '/b']],
+        'functions' => ['api/*.js' => ['memory' => 1024]],
         'headers' => [['source' => '/(.*)', 'headers' => [['key' => 'X-A', 'value' => '1']]]],
     ]), 'vercel.json');
 
     expect($result['ok'])->toBeTrue()
         ->and($result['rules']['file'])->toBe('vercel.json')
-        ->and(implode(' ', $result['notes']))->toContain('buildCommand')->toContain('rewrites');
+        ->and(implode(' ', $result['notes']))->toContain('buildCommand')->toContain('functions');
 });
 
 it('uses availcoolify.json when both files exist and vercel.json otherwise', function () {
@@ -98,7 +98,7 @@ it('skips single bad rules and keeps the rest', function () {
     $result = availRoutingParse(json_encode([
         'headers' => [
             ['source' => '/ok', 'headers' => [['key' => 'X-Ok', 'value' => '1'], ['key' => 'Set-Cookie', 'value' => 'a=b'], ['key' => 'X-Bad', 'value' => "a\r\nb"], ['key' => 'bad name', 'value' => 'x']]],
-            ['source' => '/cond', 'has' => [['type' => 'header', 'key' => 'x']], 'headers' => [['key' => 'X-C', 'value' => '1']]],
+            ['source' => '/cond', 'has' => [['type' => 'header', 'key' => 'x', 'value' => ['eq' => 'a']]], 'headers' => [['key' => 'X-C', 'value' => '1']]],
             ['source' => '/((?=a).*)', 'headers' => [['key' => 'X-L', 'value' => '1']]],
             ['headers' => [['key' => 'X-N', 'value' => '1']]],
         ],

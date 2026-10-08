@@ -3700,7 +3700,7 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
         $base64_static_build = base64_encode($static_build);
         $this->execute_remote_command(
             [executeInDocker($this->deployment_uuid, "echo '{$dockerfile}' | base64 -d | tee {$this->workdir}/Dockerfile > /dev/null")],
-            [executeInDocker($this->deployment_uuid, "echo '{$nginx_config}' | base64 -d | tee {$this->workdir}/nginx.conf > /dev/null")],
+            [executeInDocker($this->deployment_uuid, "echo '{$this->availStaticNginxConfig($nginx_config)}' | base64 -d | tee {$this->workdir}/nginx.conf > /dev/null")],
             [executeInDocker($this->deployment_uuid, "echo '{$base64_static_build}' | base64 -d | tee ".self::BUILD_SCRIPT_PATH.' > /dev/null'), 'hidden' => true],
             [executeInDocker($this->deployment_uuid, 'cat '.self::BUILD_SCRIPT_PATH), 'hidden' => true],
             [executeInDocker($this->deployment_uuid, 'bash '.self::BUILD_SCRIPT_PATH), 'hidden' => true],
@@ -3931,13 +3931,70 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
         }
 
         if ($rules) {
-            $log('Routing rules: '.count($rules['headers'] ?? []).' header rule(s) and '.count($rules['redirects'] ?? [])." redirect(s) from {$rules['file']} ({$source}).");
+            $parts = [count($rules['headers'] ?? []).' header rule(s)', count($rules['redirects'] ?? []).' redirect(s)'];
+            if (($rules['rewrites'] ?? []) !== []) {
+                $parts[] = count($rules['rewrites']).' rewrite(s)';
+            }
+            $log('Routing rules: '.implode(', ', $parts)." from {$rules['file']} ({$source}).");
+            $staticOnly = ($rules['rewrites'] ?? []) !== [] || ($rules['cleanUrls'] ?? null) === true || is_bool($rules['trailingSlash'] ?? null);
+            if ($staticOnly && ! availRoutingAppIsStatic($this->application)) {
+                $log('Routing rules: rewrites, cleanUrls and trailingSlash only apply to static sites (static build pack or the static site option); they are ignored for this app.');
+            }
         }
         // The stored labels are what a deployment uses, so they have to carry the new rules.
         if ($this->pull_request_id === 0 && data_get($this->application, 'custom_labels')) {
             $this->application->custom_labels = base64_encode(implode("\n", generateLabelsApplication($this->application)));
             $this->application->save();
         }
+    }
+
+    /**
+     * Avail: the Nginx configuration for a static image. The app's own custom configuration always
+     * wins; otherwise rewrites, cleanUrls and trailingSlash from availcoolify.json produce one, and it
+     * is only used when `nginx -t` accepts it. Anything else keeps the default (or SPA) configuration.
+     *
+     * @param  string  $nginxConfigBase64  the configuration that would be used without the rules
+     */
+    private function availStaticNginxConfig(string $nginxConfigBase64): string
+    {
+        if (! config('avail.routing_rules_enabled', true)) {
+            return $nginxConfigBase64;
+        }
+        $target = $this->pull_request_id === 0 ? $this->application : $this->preview;
+        $rules = $target?->avail_routing_rules;
+        if (! is_array($rules)) {
+            return $nginxConfigBase64;
+        }
+        $generated = availRoutingNginxConfig($rules, (bool) $this->application->settings->is_spa);
+        if ($generated === null) {
+            return $nginxConfigBase64;
+        }
+        $log = fn (string $line) => $this->application_deployment_queue->addLogEntry($line);
+        if (str($this->application->custom_nginx_configuration)->isNotEmpty()) {
+            $log('Routing rules: rewrites, cleanUrls and trailingSlash are not applied, this app has a custom Nginx configuration.');
+
+            return $nginxConfigBase64;
+        }
+
+        $encoded = base64_encode($generated);
+        $script = "echo '{$encoded}' | base64 -d > {$this->workdir}/nginx.avail.conf; "
+            ."docker run --rm -i {$this->staticImage()} sh -c 'cat > /etc/nginx/conf.d/default.conf && nginx -t' < {$this->workdir}/nginx.avail.conf 2>&1; "
+            .'echo AVAIL_NGINX_EXIT=$?';
+        $this->execute_remote_command([
+            executeInDocker($this->deployment_uuid, $script),
+            'hidden' => true,
+            'save' => 'avail_nginx_check',
+            'ignore_errors' => true,
+        ]);
+        $output = (string) $this->saved_outputs->get('avail_nginx_check', '');
+        if (! str_contains($output, 'AVAIL_NGINX_EXIT=0')) {
+            $log('Routing rules: the Nginx configuration generated from the rewrites was refused by Nginx, so the default configuration is used. '.str($output)->replace('AVAIL_NGINX_EXIT=', 'exit ')->limit(300));
+
+            return $nginxConfigBase64;
+        }
+        $log('Routing rules: Nginx configuration generated from '.count($rules['rewrites'] ?? []).' rewrite(s)'.(($rules['cleanUrls'] ?? null) === true ? ', cleanUrls' : '').(is_bool($rules['trailingSlash'] ?? null) ? ', trailingSlash' : '').' and checked with nginx -t.');
+
+        return $encoded;
     }
 
     private function availReadRepoFile(string $name, string $saveAs): string
@@ -4371,7 +4428,7 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
                 executeInDocker($this->deployment_uuid, "echo '{$dockerfile}' | base64 -d | tee {$this->workdir}/Dockerfile > /dev/null"),
             ],
             [
-                executeInDocker($this->deployment_uuid, "echo '{$nginx_config}' | base64 -d | tee {$this->workdir}/nginx.conf > /dev/null"),
+                executeInDocker($this->deployment_uuid, "echo '{$this->availStaticNginxConfig($nginx_config)}' | base64 -d | tee {$this->workdir}/nginx.conf > /dev/null"),
             ],
             [
                 executeInDocker($this->deployment_uuid, "echo '{$base64_build_command}' | base64 -d | tee ".self::BUILD_SCRIPT_PATH.' > /dev/null'),
@@ -4568,7 +4625,7 @@ COPY ./nginx.conf /etc/nginx/conf.d/default.conf");
                     executeInDocker($this->deployment_uuid, "echo '{$dockerfile}' | base64 -d | tee {$this->workdir}/Dockerfile > /dev/null"),
                 ],
                 [
-                    executeInDocker($this->deployment_uuid, "echo '{$nginx_config}' | base64 -d | tee {$this->workdir}/nginx.conf > /dev/null"),
+                    executeInDocker($this->deployment_uuid, "echo '{$this->availStaticNginxConfig($nginx_config)}' | base64 -d | tee {$this->workdir}/nginx.conf > /dev/null"),
                 ],
                 [
                     executeInDocker($this->deployment_uuid, "echo '{$base64_build_command}' | base64 -d | tee ".self::BUILD_SCRIPT_PATH.' > /dev/null'),

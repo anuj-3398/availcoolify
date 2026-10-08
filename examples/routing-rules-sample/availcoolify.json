@@ -1,24 +1,20 @@
 {
   "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'" }
-      ]
-    },
-    {
-      "source": "/assets/:path*",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000" }]
-    },
-    {
-      "source": "/((?!api|_next).*)",
-      "headers": [{ "key": "X-Page", "value": "1" }]
-    }
+    { "source": "/(.*)", "headers": [{ "key": "X-Frame-Options", "value": "DENY" }, { "key": "Content-Security-Policy", "value": "default-src 'self'" }] },
+    { "source": "/assets/:path*", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000" }] },
+    { "source": "/((?!api|_next).*)", "headers": [{ "key": "X-Page", "value": "1" }] },
+    { "source": "/(.*)", "has": [{ "type": "header", "key": "x-preview", "value": "yes" }], "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] }
   ],
   "redirects": [
     { "source": "/old/:rest*", "destination": "/new/:rest", "permanent": true },
     { "source": "/tmp", "destination": "/elsewhere" },
-    { "source": "/blog/:slug", "destination": "/posts/:slug" }
+    { "source": "/blog/:slug", "destination": "/posts/:slug" },
+    { "source": "/beta", "destination": "/about", "has": [{ "type": "cookie", "key": "beta", "value": "1" }] }
+  ],
+  "rewrites": [
+    { "source": "/guides/:slug", "destination": "/guides/:slug/index.html" },
+    { "source": "/guides/:slug/(.*)", "destination": "/guides/:slug/index.html" },
+    { "source": "/:slug(about)/(.*)", "destination": "/:slug/index.html" },
+    { "source": "/(.*)", "destination": "/" }
   ]
 }

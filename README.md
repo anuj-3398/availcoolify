@@ -26,7 +26,7 @@ Developers push to GitHub and AvailCoolify builds and runs the app at `https://<
 | Previews | PR previews always sit behind a Clerk login (Traefik ForwardAuth), and each PR gets an "AvailCoolify preview" status check. |
 | Access protection | One switch per environment (Settings → Access protection) puts every app in it behind the Clerk login, e.g. staging on, production off. |
 | New resources | Vercel-style setup: the repository's default branch is preselected, and install/build/start commands and environment variables can be set before the first deploy. Apps deploy (unless you choose to create first) and databases start right after creation. |
-| Headers and redirects | An `availcoolify.json` in the app's repo (or the `headers` and `redirects` of a `vercel.json`) sets security headers, cache rules and redirects, read on every deploy and applied as Traefik labels. Turn it off with `AVAIL_ROUTING_RULES=false`. |
+| Headers and redirects | An `availcoolify.json` in the app's repo (or the `headers` and `redirects` of a `vercel.json`) sets security headers, cache rules and redirects, read on every deploy and applied as Traefik labels, with `has`/`missing` conditions. On static sites it also does rewrites, `cleanUrls` and `trailingSlash` through a generated Nginx configuration. Turn it off with `AVAIL_ROUTING_RULES=false`. |
 | UI | AvailCoolify branding, trimmed resource picker and account menu, dashboard with projects first and the latest deployment per app, in-app Developer Guide. |
 
 ## Branches
