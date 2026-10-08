@@ -147,6 +147,7 @@ jobs:
           role-to-assume: ${{ vars.AWS_BUILD_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
           role-session-name: avail-build-${{ github.run_id }}
+          mask-aws-account-id: true # the repository is public, so are its logs
 
       - name: Registry token and image name
         id: registry
@@ -265,6 +266,7 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
           role-session-name: avail-release-${{ github.run_id }}
+          mask-aws-account-id: true # the repository is public, so are its logs
 
       - name: Load secrets from SSM
         run: scripts/prod/ssm-load.sh "$SSM_PATH_PREFIX" "$RUNNER_TEMP/ssm.env"

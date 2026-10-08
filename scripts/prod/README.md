@@ -1,7 +1,8 @@
 # Release pipeline
 
 `.github/workflows/release.yml` tests, builds, pushes and deploys AvailCoolify. It replaces
-`avail-production.yml`. It runs on the fork from the `avail` branch.
+`avail-production.yml`. It lives in `availproject/availcoolify` (a public repository) and deploys from the
+`avail` branch.
 
 No secret lives in GitHub. The jobs sign in to AWS with GitHub's OIDC token and read their secrets from
 SSM Parameter Store. They reach the VMs through Teleport (a Machine ID bot). Neither CI nor people use SSH
@@ -71,7 +72,7 @@ environment only, so it sits behind the approval.
     "Condition": {
       "StringEquals": {
         "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-        "token.actions.githubusercontent.com:sub": "repo:<OWNER>/<REPO>:environment:production"
+        "token.actions.githubusercontent.com:sub": "repo:availproject/availcoolify:environment:production"
       }
     }
   }]
@@ -94,7 +95,7 @@ Permissions:
 }
 ```
 
-**Build role** (`AWS_BUILD_ROLE_ARN`). Same trust policy, but `sub` is `repo:<OWNER>/<REPO>:ref:refs/heads/avail`.
+**Build role** (`AWS_BUILD_ROLE_ARN`). Same trust policy, but `sub` is `repo:availproject/availcoolify:ref:refs/heads/avail`.
 Permissions: `ssm:GetParameter` on `.../parameter/avail/coolify/prod/DOCR_PUSH_TOKEN` only.
 
 If the parameters use a customer-managed KMS key instead of `alias/aws/ssm`, both roles also need `kms:Decrypt`
@@ -131,8 +132,9 @@ spec:
   bot_name: avail-coolify-ci
   github:
     allow:
-      - repository: <OWNER>/<REPO>
+      - repository: availproject/availcoolify
         environment: production
+        ref: refs/heads/avail
 ```
 
 ```bash
@@ -152,8 +154,21 @@ delete old tags by hand, but keep the ones you may roll back to, and check the p
 
 ### 4. GitHub
 
-Settings → Secrets and variables → Actions → **Variables** (repository level, because the build job has no
-environment). They are not secret. Settings → Environments → `production`: add required reviewers.
+All of this needs a repository admin of `availproject/availcoolify`.
+
+- Settings → Secrets and variables → Actions → **Variables** (repository level, because the build job has no
+  environment). They are not secret; the table below lists them.
+- Settings → Environments → `production`: add **required reviewers**, and under *Deployment branches and
+  tags* choose **Selected branches → `avail`**. The repository is public and anyone with write access can start
+  a workflow from any branch; this keeps the production jobs on `avail`. (The AWS build role and the Teleport
+  token above only accept `avail` as well.)
+- Settings → Actions → General: if the organisation limits which actions may run, allow
+  `aws-actions/*`, `teleport-actions/*`, `docker/*` and `shivammathur/setup-php`. The rest are GitHub's own.
+
+**Because the repository is public:** run logs are public too. Secrets are masked and so is the AWS account id,
+but the Teleport proxy address, node names, image tags and the dashboard URL are not secret and appear in the logs
+and the run summary. Pull requests from forks run only the `test` job with no secrets, and the AWS roles do not
+trust `pull_request` tokens, so they cannot reach AWS or Teleport. The workflow does not use `pull_request_target`.
 
 | Variable | Example / default | Used by |
 | --- | --- | --- |
@@ -188,6 +203,9 @@ injected, the pipeline removes it. Teleport is the way in, so test the provider'
 
 ### 6. First run
 
+0. Merge `feature/release-ci` into `avail` once it is reviewed and the settings above exist. **Run workflow** only works for a
+   workflow that is on the default branch (`avail`), and the AWS build role, the Teleport token and the `production`
+   environment all accept `avail` only, so the pipeline cannot be tried from the feature branch.
 1. Run **provision** on throwaway VMs first (Cloudflare off), approve it, check the summary, then do it again on the real ones.
 2. Sign in once with `PROD_ROOT_USER_EMAIL`.
 3. App servers, without anyone touching `authorized_keys`: in the UI go to Keys & Tokens → Generate (ed25519), copy the **public** key

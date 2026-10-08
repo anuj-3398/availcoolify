@@ -55,6 +55,10 @@ The server runs a local image built from `avail`, not the official Coolify image
 
 The script builds `docker/production/Dockerfile`, pins the image in `docker-compose.custom.yml` next to Coolify's compose files, sets the reported version to `<base>-avail.<sha>` and restarts the stack. Vendor patches in `patches/` are applied during the build, which fails if one no longer applies.
 
+### Production
+
+Production is not deployed by hand with that script. `.github/workflows/release.yml` runs the tests, pushes the image to the DigitalOcean registry and deploys it through Teleport, with its secrets in AWS SSM and no SSH keys in GitHub. The one-time setup, the variables and parameters it needs, and how to roll back are in [`scripts/prod/README.md`](scripts/prod/README.md).
+
 ## Tests
 
 Our tests are the `tests/Feature/Avail*.php` files plus the updated upstream tests for the areas we changed. Run them with Pest, as upstream does:
@@ -63,7 +67,7 @@ Our tests are the `tests/Feature/Avail*.php` files plus the updated upstream tes
 vendor/bin/pest tests/Feature/Avail*.php
 ```
 
-A few upstream tests fail by design, because the feature they cover is removed here (for example password login and the forgot-password link).
+A few upstream tests fail by design, because the feature they cover is removed here (for example password login and the forgot-password link). The CI gate runs the whole suite minus the files and tests listed, each with a reason, in `tests/avail-ci-skip.txt`.
 
 ## Upstream
 
