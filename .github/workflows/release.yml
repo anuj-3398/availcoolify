@@ -10,11 +10,12 @@ name: Release
 #     build       same as a push, never deploys
 #     deploy      build HEAD, deploy it to the control plane, configure the instance, smoke checks
 #     provision   everything from enrolled but bare VMs: Docker, SSH for Coolify, /data/coolify and .env,
-#                 Cloudflare, log collector, then the same as deploy
+#                 log collector, then the same as deploy
 #     rollback    redeploy an earlier image (input image_tag, e.g. custom-06e5e21b9)
 #
 # deploy, provision and rollback run in the "production" environment: add required reviewers there so
-# nothing reaches production without an approval.
+# nothing reaches production without an approval. Cloudflare (DNS records and zone rules) is set up once by
+# hand, not by this workflow; see scripts/prod/README.md.
 #
 # No secret is stored in GitHub. The jobs assume AWS roles through GitHub's OIDC token and read their
 # secrets from SSM Parameter Store; they reach the VMs through Teleport Machine ID, so neither CI nor
@@ -38,14 +39,10 @@ on:
         description: "rollback only: image tag to go back to (e.g. custom-06e5e21b9)"
         type: string
         required: false
-      cloudflare:
-        description: "provision only: also configure Cloudflare (DNS, TLS rule, cache, rate limit)"
-        type: boolean
-        default: true
-
-concurrency:
-  group: avail-production
-  cancel-in-progress: false
+      smoke_ip:
+        description: "optional: run the smoke checks against this IP instead of through DNS (throwaway VMs before their DNS record exists; TLS is not verified then)"
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -108,6 +105,7 @@ jobs:
           shellcheck -S warning scripts/deploy-custom.sh scripts/prod/*.sh
           php -l scripts/prod/configure-instance.php
           php -l scripts/prod/localhost-public-key.php
+          php -l scripts/prod/worker-key.php
           docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 .github/workflows/release.yml
 
       - name: Say why no image is built
@@ -202,6 +200,11 @@ jobs:
       )
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    # Only production runs share this group, so a pull request can never cancel a queued deploy. GitHub
+    # keeps one pending run per group: a newer deploy replaces an older one that is still waiting.
+    concurrency:
+      group: avail-production
+      cancel-in-progress: false
     environment: production
     permissions:
       contents: read
@@ -220,9 +223,7 @@ jobs:
       PROD_ROOT_USER_EMAIL: ${{ vars.PROD_ROOT_USER_EMAIL }}
       PROD_AUTO_JOIN_DOMAINS: ${{ vars.PROD_AUTO_JOIN_DOMAINS }}
       PROD_DB_SSLMODE: ${{ vars.PROD_DB_SSLMODE }}
-      PROD_CF_ZONE: ${{ vars.PROD_CF_ZONE }}
-      PROD_CONTROL_PLANE_IP: ${{ vars.PROD_CONTROL_PLANE_IP }}
-      PROD_APP_SERVER_IP: ${{ vars.PROD_APP_SERVER_IP }}
+      SMOKE_IP: ${{ inputs.smoke_ip }}
       # Removing every SSH key but Coolify's is the default; a repo variable can turn it off.
       PRUNE_AUTHORIZED_KEYS: ${{ vars.PROD_KEEP_SSH_KEYS == 'true' && '0' || '1' }}
     steps:
@@ -250,16 +251,17 @@ jobs:
       - name: Check configuration
         env:
           AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
-          CLOUDFLARE: ${{ inputs.cloudflare }}
         run: |
           missing=""
           need() { for v in "$@"; do [ -n "${!v:-}" ] || missing="$missing $v"; done; }
           need AWS_ROLE_ARN AWS_REGION TELEPORT_PROXY TELEPORT_BOT_TOKEN PROD_CONTROL_PLANE_NODE PROD_DASHBOARD_URL
           if [ "$ACTION" = provision ]; then
             need PROD_APP_SERVER_NODES PROD_APPS_WILDCARD PROD_ROOT_USER_EMAIL
-            [ "$CLOUDFLARE" != true ] || need PROD_CF_ZONE
           fi
           [ -z "$missing" ] || { echo "::error::missing repository variables:$missing (see scripts/prod/README.md)"; exit 1; }
+          if [ -n "$SMOKE_IP" ] && ! [[ "$SMOKE_IP" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]]; then
+            echo "::error::smoke_ip must be an IPv4 address, got: $SMOKE_IP"; exit 1
+          fi
 
       - uses: aws-actions/configure-aws-credentials@v6
         with:
@@ -272,8 +274,6 @@ jobs:
         run: scripts/prod/ssm-load.sh "$SSM_PATH_PREFIX" "$RUNNER_TEMP/ssm.env"
 
       - name: Check secrets
-        env:
-          CLOUDFLARE: ${{ inputs.cloudflare }}
         run: |
           source scripts/prod/ci-lib.sh
           load_ssm
@@ -282,7 +282,6 @@ jobs:
           need DOCR_TOKEN
           if [ "$ACTION" = provision ]; then
             need DATABASE_URL CLERK_CLIENT_ID CLERK_CLIENT_SECRET CLERK_BASE_URL
-            [ "$CLOUDFLARE" != true ] || need CLOUDFLARE_API_TOKEN
           fi
           [ -z "$missing" ] || { echo "::error::missing SSM parameters under ${SSM_PATH_PREFIX}:$missing (see scripts/prod/README.md)"; exit 1; }
 
@@ -320,19 +319,6 @@ jobs:
 
           provision_host "$PROD_CONTROL_PLANE_NODE" control-plane
           for node in $PROD_APP_SERVER_NODES; do provision_host "$node" app-server; done
-
-      - name: Cloudflare (DNS, TLS, cache, rate limit)
-        if: env.ACTION == 'provision' && inputs.cloudflare
-        run: |
-          source scripts/prod/ci-lib.sh
-          load_ssm
-          export CF_API_TOKEN="$CLOUDFLARE_API_TOKEN" CF_ZONE="$PROD_CF_ZONE"
-          export DASHBOARD_HOST="${PROD_DASHBOARD_URL#https://}" APPS_HOST="${PROD_APPS_WILDCARD#https://}"
-          first_app_server="${PROD_APP_SERVER_NODES%% *}"
-          CONTROL_PLANE_IP="${PROD_CONTROL_PLANE_IP:-$(node_public_ip "$PROD_CONTROL_PLANE_NODE")}"
-          APP_SERVER_IP="${PROD_APP_SERVER_IP:-$(node_public_ip "$first_app_server")}"
-          export CONTROL_PLANE_IP APP_SERVER_IP
-          scripts/prod/cloudflare-setup.sh
 
       # ------------------------------------------------------------------------------- deploy
       - name: Deploy image to the control plane
@@ -376,23 +362,21 @@ jobs:
           COOLIFY_PUBLIC_KEY="$pubkey" REMOTE_ENV="COOLIFY_PUBLIC_KEY PRUNE_AUTHORIZED_KEYS" \
             remote_env "$PROD_CONTROL_PLANE_NODE" "$RELEASE_DIR/scripts/prod/ssh-authorized-keys.sh"
 
-      # The one SSH key in the system: Coolify's, to manage the app servers. Create it in the UI (Keys &
-      # Tokens -> Generate), put its PUBLIC half in the repository variable, and run deploy. The pipeline
-      # installs it over Teleport and removes every other key, so nobody edits authorized_keys by hand.
+      # Coolify's key for the app servers ("avail-workers" in its database) is made by Coolify itself on the
+      # first run and read back on later ones; its private half never leaves the control plane. The pipeline
+      # installs the public half over Teleport and removes every other key, so nobody handles keys by hand.
       - name: Let Coolify's SSH key into the app servers
         if: env.ACTION != 'rollback'
-        env:
-          COOLIFY_PUBLIC_KEY: ${{ vars.PROD_COOLIFY_SSH_PUBKEY }}
         run: |
           source scripts/prod/ci-lib.sh
           if [ -z "$PROD_APP_SERVER_NODES" ]; then
             echo "No app servers configured"
             exit 0
           fi
-          if [ -z "$COOLIFY_PUBLIC_KEY" ]; then
-            echo "::notice::PROD_COOLIFY_SSH_PUBKEY is not set, so no app server accepts Coolify yet (scripts/prod/README.md, first run, step 3)"
-            exit 0
-          fi
+          COOLIFY_PUBLIC_KEY="$(remote "$PROD_CONTROL_PLANE_NODE" "docker exec -i coolify php < $RELEASE_DIR/scripts/prod/worker-key.php" | grep -E '^(ssh-|ecdsa-)' | head -n1)"
+          [ -n "$COOLIFY_PUBLIC_KEY" ] || { echo "::error::could not get Coolify's app-server key (scripts/prod/worker-key.php)"; exit 1; }
+          echo "Coolify's app-server key: $COOLIFY_PUBLIC_KEY"
+          export COOLIFY_PUBLIC_KEY
           for node in $PROD_APP_SERVER_NODES; do
             push_release "$node"
             REMOTE_ENV="COOLIFY_PUBLIC_KEY PRUNE_AUTHORIZED_KEYS" remote_env "$node" "$RELEASE_DIR/scripts/prod/ssh-authorized-keys.sh"
@@ -410,12 +394,14 @@ jobs:
           export OTEL_EXPORTER_OTLP_ENDPOINT="$SIGNOZ_OTLP_ENDPOINT" DEPLOYMENT_ENVIRONMENT=production
           for node in $PROD_CONTROL_PLANE_NODE $PROD_APP_SERVER_NODES; do
             push_release "$node"
-            HOST_NAME="$node" REMOTE_ENV="OTEL_EXPORTER_OTLP_ENDPOINT SIGNOZ_INGESTION_KEY HOST_NAME DEPLOYMENT_ENVIRONMENT" \
+            HOST_NAME="$node" REMOTE_ENV="OTEL_EXPORTER_OTLP_ENDPOINT HOST_NAME DEPLOYMENT_ENVIRONMENT" \
               remote_env "$node" "$RELEASE_DIR/scripts/prod/deploy-platform.sh"
           done
 
+      # With smoke_ip, the dashboard's host name is pinned to that IP (throwaway VMs have no DNS record and
+      # so no Let's Encrypt certificate yet, which is why TLS is not verified then).
       - name: Smoke checks
-        run: scripts/prod/smoke-check.sh "$PROD_DASHBOARD_URL"
+        run: scripts/prod/smoke-check.sh "$PROD_DASHBOARD_URL" "$SMOKE_IP"
 
       - name: Notify Slack
         if: always()

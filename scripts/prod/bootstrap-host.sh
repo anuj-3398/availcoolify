@@ -285,7 +285,7 @@ main() {
     install_docker
 
     if [ "$role" = "app-server" ]; then
-        log "App server ready. Coolify's key is installed by the deploy step once PROD_COOLIFY_SSH_PUBKEY is set (README, first run); then add the server in AvailCoolify (Servers -> Add, root, port $SSH_PORT) and set its wildcard domain."
+        log "App server ready. The deploy step installs Coolify's key (avail-workers, made by worker-key.php); then add the server in AvailCoolify (Servers -> Add, root, port $SSH_PORT, key avail-workers) and set its wildcard domain."
         return 0
     fi
 

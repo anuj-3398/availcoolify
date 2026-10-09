@@ -1,4 +1,5 @@
-// Ships Docker container logs (coolify, proxy, apps) to SigNoz over OTLP/HTTP.
+// Ships Docker container logs (coolify, proxy, apps) and host and per-container metrics to SigNoz over
+// OTLP/HTTP. The SigNoz endpoint (otel2.avail.so) takes no ingestion key.
 discovery.docker "containers" {
   host = "unix:///var/run/docker.sock"
 }
@@ -68,15 +69,97 @@ otelcol.processor.transform "service_name" {
   }
 }
 
+// --- Metrics: host (CPU, memory, disk, network) and per container ----------------------------------
+// The host's /proc, /sys and / are mounted under /host (docker-compose.yml).
+prometheus.exporter.unix "host" {
+  procfs_path = "/host/proc"
+  sysfs_path  = "/host/sys"
+  rootfs_path = "/host/root"
+}
+
+// Docker 29 keeps images in containerd (the containerd image store), so cAdvisor reads containers through
+// containerd's socket (mounted in docker-compose.yml); its Docker-only mode finds none there.
+// prometheus.relabel.containers keeps the Docker containers and gives them the log lines' attributes.
+prometheus.exporter.cadvisor "containers" {
+  docker_host      = "unix:///var/run/docker.sock"
+  docker_only      = false
+  storage_duration = "2m"
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.relabel.labels.receiver]
+}
+
+prometheus.scrape "containers" {
+  targets         = prometheus.exporter.cadvisor.containers.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.relabel.containers.receiver]
+}
+
+prometheus.relabel "containers" {
+  rule {
+    source_labels = ["id"]
+    regex         = "/system\\.slice/docker-[0-9a-f]{64}\\.scope"
+    action        = "keep"
+  }
+  rule {
+    source_labels = ["id"]
+    regex         = "/system\\.slice/docker-([0-9a-f]{64})\\.scope"
+    target_label  = "container_id"
+  }
+  rule {
+    source_labels = ["container_label_coolify_type"]
+    regex         = "(.+)"
+    target_label  = "coolify_type"
+  }
+  rule {
+    source_labels = ["container_label_coolify_name"]
+    regex         = "(.+)"
+    target_label  = "coolify_name"
+  }
+  rule {
+    source_labels = ["container_label_coolify_applicationId"]
+    regex         = "(.+)"
+    target_label  = "coolify_application_id"
+  }
+  // Every Docker label becomes its own cAdvisor label (about 150 per series); keep only the ones above.
+  rule {
+    regex  = "id|container_label_.*"
+    action = "labeldrop"
+  }
+  forward_to = [prometheus.relabel.labels.receiver]
+}
+
+// The same host_name / deployment_environment as on the log lines.
+prometheus.relabel "labels" {
+  rule {
+    target_label = "host_name"
+    replacement  = coalesce(sys.env("HOST_NAME"), "anuj-coolify-testing")
+  }
+  rule {
+    target_label = "deployment_environment"
+    replacement  = coalesce(sys.env("DEPLOYMENT_ENVIRONMENT"), "coolify-testing")
+  }
+  forward_to = [otelcol.receiver.prometheus.default.receiver]
+}
+
+otelcol.receiver.prometheus "default" {
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+
 otelcol.processor.batch "default" {
   output {
-    logs = [otelcol.exporter.otlphttp.signoz.input]
+    logs    = [otelcol.exporter.otlphttp.signoz.input]
+    metrics = [otelcol.exporter.otlphttp.signoz.input]
   }
 }
 
 otelcol.exporter.otlphttp "signoz" {
   client {
     endpoint = sys.env("OTEL_EXPORTER_OTLP_ENDPOINT")
-    headers  = { "signoz-ingestion-key" = sys.env("SIGNOZ_INGESTION_KEY") }
   }
 }

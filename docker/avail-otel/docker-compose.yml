@@ -1,6 +1,6 @@
 services:
   alloy:
-    image: grafana/alloy:v1.8.1
+    image: grafana/alloy:v1.19.2
     container_name: avail-log-shipper
     restart: unless-stopped
     user: "0:0"
@@ -10,8 +10,19 @@ services:
       - ./config.alloy:/etc/alloy/config.alloy:ro
       - alloy-data:/var/lib/alloy/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Host and container metrics (prometheus.exporter.unix / cadvisor in config.alloy).
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+      # Docker 29 keeps containers' images in containerd; cAdvisor asks containerd about each container.
+      - /run/containerd/containerd.sock:/run/containerd/containerd.sock:ro
+    # cadvisor reads every container's cgroup, which the default private cgroup namespace hides.
+    cgroup: host
     labels:
       - coolify.managed=true
-    mem_limit: 384m
+    mem_limit: 768m
 volumes:
   alloy-data:

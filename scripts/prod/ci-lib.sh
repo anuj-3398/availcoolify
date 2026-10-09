@@ -8,7 +8,6 @@
 #                                 VM as a 0600 file that the command sources and then deletes, so secrets
 #                                 never appear in a process list or the workflow log
 #   push_release <node>           copy the files a deploy needs into /root/availcoolify-release
-#   node_public_ip <node>         public IPv4 address of a VM
 #
 # VMs are reached through Teleport only (no SSH keys). <node> is the node name in Teleport. The workflow's
 # teleport-actions/auth step leaves TELEPORT_IDENTITY_FILE in the environment; TELEPORT_PROXY is the proxy
@@ -57,15 +56,4 @@ push_release() {
         scripts/deploy-custom.sh scripts/prod \
         docker/avail-otel |
         remote "$node" "rm -rf '$RELEASE_DIR' && mkdir -p '$RELEASE_DIR' && tar xzf - -C '$RELEASE_DIR' && chmod +x '$RELEASE_DIR'/scripts/deploy-custom.sh '$RELEASE_DIR'/scripts/prod/*.sh"
-}
-
-node_public_ip() {
-    local node="$1" ip
-    # DigitalOcean's metadata service first, then a public echo service.
-    ip="$(remote "$node" 'curl -fsS --max-time 3 http://169.254.169.254/metadata/v1/interfaces/public/0/ipv4/address 2>/dev/null || curl -4 -fsS --max-time 10 https://api.ipify.org')"
-    if ! [[ "$ip" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]]; then
-        echo "cannot work out the public IP of $node (got: $ip); set PROD_CONTROL_PLANE_IP / PROD_APP_SERVER_IP" >&2
-        return 1
-    fi
-    echo "$ip"
 }

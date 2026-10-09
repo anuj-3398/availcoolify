@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# Run on every VM by the release workflow: start the log shipper (Grafana Alloy -> SigNoz) from the copy
-# of docker/avail-otel that the workflow put in RELEASE_DIR. Idempotent: re-running updates it in place.
+# Run on every VM by the release workflow: start the log and metrics shipper (Grafana Alloy -> SigNoz) from
+# the copy of docker/avail-otel that the workflow put in RELEASE_DIR. Idempotent: re-running updates it in place.
 #
 # Environment (the workflow sends it as a 0600 env file):
-#   OTEL_EXPORTER_OTLP_ENDPOINT   SigNoz OTLP/HTTP endpoint. Without it nothing is started.
-#   SIGNOZ_INGESTION_KEY          SigNoz ingestion key
-#   HOST_NAME                     host_name attribute on every log line (default: this host's name)
+#   OTEL_EXPORTER_OTLP_ENDPOINT   SigNoz OTLP/HTTP endpoint (it takes no key). Without it nothing is started.
+#   HOST_NAME                     host_name attribute on every log line and metric (default: this host's name)
 #   DEPLOYMENT_ENVIRONMENT        deployment_environment attribute (default: production)
 #   PLATFORM_DIR                  where the compose project lives (default /data/coolify/platform/otel)
 set -euo pipefail
@@ -28,7 +27,6 @@ cp "$SRC/docker-compose.yml" "$SRC/config.alloy" "$DEST/"
     umask 077
     {
         printf 'OTEL_EXPORTER_OTLP_ENDPOINT=%s\n' "$OTEL_EXPORTER_OTLP_ENDPOINT"
-        printf 'SIGNOZ_INGESTION_KEY=%s\n' "${SIGNOZ_INGESTION_KEY:-}"
         printf 'HOST_NAME=%s\n' "${HOST_NAME:-$(hostname)}"
         printf 'DEPLOYMENT_ENVIRONMENT=%s\n' "${DEPLOYMENT_ENVIRONMENT:-production}"
     } >"$DEST/.env"
